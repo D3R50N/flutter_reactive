@@ -50,6 +50,8 @@ Update based on current value:
 counter.update((v) => v + 1);
 ```
 
+See the [bests practices](#tips-and-best-practices) section for more details.
+
 ## Binding a Reactive to a State
 
 Bind a Reactive to a State so the UI updates automatically.
@@ -271,7 +273,7 @@ ReactiveBuilder(
 
 ```dart
 ReactiveStreamBuilder(
-    stream: counter.stream,
+    reactive: counter,
     builder: (context, snapshot) {
       if(!snapshot.hasData) {
         return CircularProgressIndicator();
@@ -279,6 +281,49 @@ ReactiveStreamBuilder(
       return Text('Counter: ${snapshot.data}');
     },
 );
+```
+
+### Difference between ReactiveBuilder and ReactiveStreamBuilder
+
+- ReactiveBuilder rebuilds when the Reactive value changes, using internal binding to State.
+- ReactiveStreamBuilder rebuilds based on the Reactive's stream, useful for integrating with other stream-based widgets. Therefore, no internal State binding is done and you can access to the snapshot.
+
+## Tips and Best Practices
+
+Using `react()` or `Reactive\<T>`.bind() inside a State class is the most common use case but should be used wisely cause each change triggers a setState().\
+If you have many Reactive values changing frequently, or all your state does not depend on them, consider using `Reactive\<T>` + `ReactiveBuilder` or `ReactiveStreamBuilder` to limit rebuilds to only the widgets that need them.\
+Here are some examples:
+
+```dart
+class CounterWidget extends StatefulWidget {
+  @override
+  _CounterWidgetState createState() => _CounterWidgetState();
+}
+class _CounterWidgetState extends State<CounterWidget> {
+  late final counter = react(0); // binds to this State
+  late final counterNotBound = Reactive(0); // can be outside the State class
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text('Counter: $value'), //the state rebuilds on counter change
+        ReactiveBuilder(
+          reactive: counterNotBound, // only this widget rebuilds on counterNotBound change
+          builder: (value) => Text('Counter: $value'),
+        ),
+        ElevatedButton(
+          onPressed: () => counter.increment(), // excessive rebuilds
+          child: Text('Increment'),
+        ),
+        ElevatedButton(
+          onPressed: () => counterNotBound.increment(), // only rebuilds ReactiveBuilder
+          child: Text('Increment Not Bound'),
+        ),
+      ],
+    );
+  }
+}
 ```
 
 ## License

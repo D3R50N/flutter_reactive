@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
+import 'page2.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -24,25 +26,36 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  // Basic reactives
-  late final counter = react(0);
-  late final counter2 = react(10);
-  late final isVisible = react(true);
-  late final name = react('Andy');
+final counter = Reactive(0);
+final counter2 = Reactive(10);
+final isVisible = Reactive(true);
+final name = Reactive('Andy');
 
-  // Combined reactive
-  late final summary = Reactive.combine4(
-    counter,
-    counter2,
-    isVisible,
-    name,
-    (c1, c2, visible, n) =>
-        '$n → ${c1 + c2} (${visible ? "visible" : "hidden"})',
-  );
+// Combined reactive
+final summary = Reactive.combine4(
+  counter,
+  counter2,
+  isVisible,
+  name,
+  (c1, c2, visible, n) => '$n → ${c1 + c2} (${visible ? "visible" : "hidden"})',
+);
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    counter.bind(this);
+  }
+
+  @override
+  void dispose() {
+    counter.unbind(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("Rebuilt");
     return Scaffold(
       appBar: AppBar(title: const Text('Flutter Reactive')),
       body: Padding(
@@ -50,6 +63,10 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(
+              'Counter 1 simple: $counter',
+              style: const TextStyle(fontSize: 18),
+            ),
             // Simple reactive binding
             ReactiveBuilder<int>(
               reactive: counter,
@@ -134,6 +151,13 @@ class _HomePageState extends State<HomePage> {
                 ElevatedButton(
                   onPressed: () => name.append('!'),
                   child: const Text('Update Name'),
+                ),
+                ElevatedButton(
+                  onPressed:
+                      () => Navigator.of(
+                        context,
+                      ).push(MaterialPageRoute(builder: (_) => Page2())),
+                  child: const Text('Go to page 2'),
                 ),
               ],
             ),
