@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/extensions/state.dart';
 
+import 'flutter_reactive_n.dart';
+
 export 'extensions/all.dart';
 export 'extensions/bool.dart';
 export 'extensions/list.dart';
@@ -10,6 +12,7 @@ export 'extensions/map.dart';
 export 'extensions/num.dart';
 export 'extensions/state.dart';
 export 'extensions/string.dart';
+export 'flutter_reactive_n.dart';
 export 'widgets/reactive_builder.dart';
 export 'widgets/stream_builder.dart';
 
@@ -35,9 +38,10 @@ typedef _ReactiveListener<T> = void Function(T value);
 /// All bound widgets will automatically rebuild.
 class Reactive<T> {
   /// Creates a new [Reactive] with an initial value.
-  Reactive(this._value);
+  Reactive(this._value, [this._strict = true]);
 
   T _value;
+  final bool _strict;
 
   /// States bound to this reactive.
   /// Every bound state will be rebuilt when the value changes.
@@ -62,7 +66,7 @@ class Reactive<T> {
   ///
   /// If the value did not change, nothing happens.
   void set(T newValue) {
-    if (_value == newValue) return;
+    if (_value == newValue && _strict) return;
     _value = newValue;
     notify();
   }
@@ -75,6 +79,45 @@ class Reactive<T> {
   /// ```
   void update(T Function(T current) fn) {
     value = fn(value);
+  }
+
+  /// Mutates the current value in place and forces a notification.
+  ///
+  /// This method is designed for **mutable objects** (models, lists, maps, etc.)
+  /// where modifying the instance does not change the reference.
+  ///
+  /// Unlike [set] or [update], `mutate` **always triggers a notification**
+  /// even if the underlying object reference stays the same.
+  ///
+  /// Use this when you intentionally modify the existing value instead of
+  /// creating a new instance.
+  ///
+  /// Example:
+  /// ```dart
+  /// user.mutate((u) {
+  ///   u.name = "Max";
+  ///   u.age++;
+  /// });
+  /// ```
+  ///
+  /// ⚠️ Note:
+  /// - Prefer immutable objects when possible
+  /// - Use `mutate` only when in-place mutation is required
+  void mutate(void Function(T value) mutator) {
+    mutator(_value);
+    notify();
+  }
+
+  /// Debounces value change notifications.
+  ///
+  void debounce(int milliseconds, _ReactiveListener<T> callback) {
+    Timer? timer;
+    listen((value) {
+      timer?.cancel();
+      timer = Timer(Duration(milliseconds: milliseconds), () {
+        callback(value);
+      });
+    });
   }
 
   /// Notifies both bound states, listeners and stream.
@@ -146,23 +189,43 @@ class Reactive<T> {
 
   /// Combines multiple Reactive values (can be of different types) into a single Reactive.
   ///
-  /// [sources] is the list of Reactive values to listen to.
-  /// [combine] receives a list of current values and returns a new value of type R.
+  /// [dependencies] is the list of Reactive values to listen to.
+  /// [combiner] receives a list of current values and returns a new value of type R.
   static Reactive<R> combine<R>(
-    List<Reactive<dynamic>> sources,
-    R Function(List<dynamic> values) combine,
+    List<Reactive<dynamic>> dependencies,
+    R Function(List<dynamic> values) combiner,
   ) {
     // Initial value
-    final combined = Reactive<R>(combine(sources.map((r) => r.value).toList()));
+    final combined = Reactive<R>(
+      combiner(dependencies.map((r) => r.value).toList()),
+    );
 
     // Callback to update combined whenever a source changes
     void update(_) {
-      combined.value = combine(sources.map((r) => r.value).toList());
+      combined.value = combiner(dependencies.map((r) => r.value).toList());
     }
 
-    // Listen to all sources
-    for (final source in sources) {
-      source.listen(update);
+    // Listen to all dependencies
+    for (final dep in dependencies) {
+      dep.listen(update);
+    }
+
+    return combined;
+  }
+
+  /// Same as combine but the combination function is not required
+  static ReactiveN<R> computed<R>(
+    List<Reactive<dynamic>> dependencies, [
+    R Function()? combiner,
+  ]) {
+    final combined = ReactiveN<R>(combiner?.call());
+
+    void update(_) {
+      combined.value = combiner?.call();
+    }
+
+    for (final dep in dependencies) {
+      dep.listen(update);
     }
 
     return combined;
@@ -173,7 +236,7 @@ class Reactive<T> {
   /// The returned reactive is automatically updated whenever
   /// either [a] or [b] changes.
   ///
-  /// The [combine] callback receives the latest values of
+  /// The [combiner] callback receives the latest values of
   /// both reactives and must return the new combined value.
   ///
   /// This method keeps strong typing and avoids using `dynamic`.
@@ -188,9 +251,9 @@ class Reactive<T> {
   static Reactive<R> combine2<A, B, R>(
     Reactive<A> a,
     Reactive<B> b,
-    R Function(A a, B b) combine,
+    R Function(A a, B b) combiner,
   ) {
-    return Reactive.combine([a, b], (l) => combine(l[0] as A, l[1] as B));
+    return Reactive.combine([a, b], (l) => combiner(l[0] as A, l[1] as B));
   }
 
   /// Combines three reactive values into a new [Reactive].
@@ -198,7 +261,7 @@ class Reactive<T> {
   /// The returned reactive is updated whenever any of the
   /// provided reactives changes.
   ///
-  /// The [combine] callback is called with the latest values
+  /// The [combiner] callback is called with the latest values
   /// of [a], [b] and [c], in the same order.
   ///
   /// This is useful for building derived state based on
@@ -221,13 +284,13 @@ class Reactive<T> {
     Reactive<A> a,
     Reactive<B> b,
     Reactive<C> c,
-    R Function(A a, B b, C c) combine,
+    R Function(A a, B b, C c) combiner,
   ) {
     return Reactive.combine([
       a,
       b,
       c,
-    ], (l) => combine(l[0] as A, l[1] as B, l[2] as C));
+    ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C));
   }
 
   /// Same thing as [combine2] and [combine3], but for four reactives.
@@ -236,14 +299,14 @@ class Reactive<T> {
     Reactive<B> b,
     Reactive<C> c,
     Reactive<D> d,
-    R Function(A a, B b, C c, D d) combine,
+    R Function(A a, B b, C c, D d) combiner,
   ) {
     return Reactive.combine([
       a,
       b,
       c,
       d,
-    ], (l) => combine(l[0] as A, l[1] as B, l[2] as C, l[3] as D));
+    ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C, l[3] as D));
   }
 
   /// Same thing as [combine2], [combine3] but for five reactives.
@@ -253,7 +316,7 @@ class Reactive<T> {
     Reactive<C> c,
     Reactive<D> d,
     Reactive<E> e,
-    R Function(A a, B b, C c, D d, E e) combine,
+    R Function(A a, B b, C c, D d, E e) combiner,
   ) {
     return Reactive.combine([
       a,
@@ -261,7 +324,7 @@ class Reactive<T> {
       c,
       d,
       e,
-    ], (l) => combine(l[0] as A, l[1] as B, l[2] as C, l[3] as D, l[4] as E));
+    ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C, l[3] as D, l[4] as E));
   }
 
   /// Returns the string representation of the current value.

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
 /// Extension on Flutter's [State] to simplify Reactive usage.
-extension ExtState on State {
+extension ReactiveState on State {
   /// Calls [setState] safely only if the state is mounted.
   ///
   /// Optionally, you can provide a [callback] to update local variables.
@@ -37,8 +37,14 @@ extension ExtState on State {
   ///   child: Text('${counter.value}'),
   /// );
   /// ```
-  Reactive<T> react<T>(T initial) {
-    final r = Reactive<T>(initial);
+  Reactive<T> react<T>(T initial, [bool strict = true]) {
+    final r = Reactive<T>(initial, strict);
+    r.bind(this);
+    return r;
+  }
+
+  ReactiveN<T> reactN<T>([T? initial, bool strict = true]) {
+    final r = ReactiveN<T>(initial, strict);
     r.bind(this);
     return r;
   }

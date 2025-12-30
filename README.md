@@ -25,7 +25,10 @@ import 'package:flutter_reactive/flutter_reactive.dart';
 Create a reactive value:
 
 ```dart
-final counter = Reactive<int>(0);
+final counter = Reactive(0); // strict by default
+final user = ReactiveN<UserModel>(); // nullable
+final counterNotStrict = Reactive(0, false); // not strict, allows same value updates
+
 ```
 
 or inside a State:
@@ -33,6 +36,8 @@ or inside a State:
 ```dart
 class _MyState extends State<MyWidget> {
     late final counter = react(0); // automatically binds to this State. Needs to be late.
+    late final user = reactN<UserModel>(); // nullable type
+    late final counterNotStrict = react(0, false); // not strict, allows same value updates
 }
 ```
 
@@ -42,13 +47,26 @@ Read & write:
 counter.value;      // get
 counter.value = 1;  // set
 counter.set(2);     // explicit
+
+user.set(UserModel(...)); // set nullable value
+
+counterNotStrict.value=1;
+counterNotStrict.value=1; //still notifies because not strict
+
 ```
 
 Update based on current value:
 
 ```dart
 counter.update((v) => v + 1);
+user.mutate((u) => u?.name = 'New Name'); // update and notify
 ```
+
+Difference between `set`, `update` and `mutate`:
+
+- `set(newValue)`: sets a new value and notifies listeners.
+- `update((current) => newValue)`: computes a new value based on the current one and notifies listeners only if the new value is different from the current one (ex: changing user name but keeping the same UserModel instance).
+- `mutate((current) => void)`: allows mutating the current value in place (useful for mutable objects). Always notifies listeners after mutation.
 
 See the [bests practices](#tips-and-best-practices) section for more details.
 
@@ -58,11 +76,11 @@ Bind a Reactive to a State so the UI updates automatically.
 
 ```dart
 
-final counter = Reactive<int>(0);// outside the State class
+final counter = Reactive(0);// outside the State class
 class _MyState extends State<MyWidget> {
 
     // or inside the State class
-    // final counter = Reactive<int>(0);
+    // final counter = Reactive(0);
 
   @override
   void initState() {
@@ -149,13 +167,24 @@ StreamBuilder<int>(
 );
 ```
 
+## Using debounce with Reactive
+
+You can debounce updates to avoid too many notifications in a short time.Also useful for search inputs and forms.
+
+```dart
+final counter = Reactive(0);
+counter.debounce(Duration(seconds: 3).inMilliseconds, (value) {
+  print("Counter $value");
+});
+```
+
 ## Combine many Reactives
 
 You can combine multiple Reactive\<T> into one Reactive\<R>.
 
 ```dart
-final a = Reactive<int>(1);
-final b = Reactive<int>(2);
+final a = Reactive(1);
+final b = Reactive(2);
 final sum = Reactive.combine([a, b], (values) => values[0] + values[1]);
 // or sum = Reactive.combine2(a, b, (aVal, bVal) => aVal + bVal);
 sum.listen((value) {
@@ -186,6 +215,18 @@ active.toggle(); // prints: Status: Active, Count: 10, Message: Hello
 There are combine methods for up to 5 Reactives (combine2, combine3, combine4, combine5).\
 For more, use combine() with a list.
 
+If no combination function is required, use `Reactive.computed()`:
+
+```dart
+final a = Reactive(1);
+final b = Reactive(2);
+final isVisible = Reactive(true);
+final combined = Reactive.computed([a, b, isVisible]); // no function needed, just tracks changes
+combined.listen((values) {
+    print('Values changed: $values');
+});
+```
+
 ## Dispose the Reactive
 
 If you want to clean up all bindings and listeners:
@@ -212,7 +253,7 @@ Simple, explicit, predictable.
 
 This package exposes extensions on:
 
-- State (updateState, react())
+- State (updateState, react(), reactN())
 - num
 - bool
 - List
@@ -239,27 +280,37 @@ Constructor:
 
 ```dart
 Reactive(T initialValue)
+ReactiveN<T>() // nullable
+Reactive(T initialValue, bool isStrict) // isStrict: prevents notifying on same value updates. Default: true 
 ```
 
 Properties:
 
-- value
-- stream
+- `value`
+- `stream`
 
 Methods:
 
-- set(T newValue)
-- update(T Function(T current))
-- bind(State state)
-- unbind(State state)
-- listen(void Function(T) callback)
-- unlisten(void Function(T) callback)
-- notify()
-- dispose()
+- `set(T newValue)`
+- `update(T Function(T current))`
+- `bind(State state)`
+- `unbind(State state)`
+- `listen(void Function(T) callback)`
+- `unlisten(void Function(T) callback)`
+- `notify()`
+- `dispose()`
+- `mutate(void Function(T) mutator)`
+- `debounce(int milliseconds, void Function(T) callback)`
+
+Static Methods:
+
+- `combine(List<Reactive> reactives, R Function(List<dynamic>) combiner)`
+- `combine2`, `combine3`, `combine4`, `combine5`
+- `computed(List<Reactive> reactives, [R Function(List<dynamic>)? combiner])`
 
 Widgets:
 
-- ReactiveBuilder\<T>
+- `ReactiveBuilder<T>`
 
 ```dart
 final counter= 0.reactive();
@@ -269,7 +320,7 @@ ReactiveBuilder(
 );
 ```
 
-- ReactiveStreamBuilder\<T>
+- `ReactiveStreamBuilder<T>`
 
 ```dart
 ReactiveStreamBuilder(
@@ -285,13 +336,22 @@ ReactiveStreamBuilder(
 
 ### Difference between ReactiveBuilder and ReactiveStreamBuilder
 
-- ReactiveBuilder rebuilds when the Reactive value changes, using internal binding to State.
-- ReactiveStreamBuilder rebuilds based on the Reactive's stream, useful for integrating with other stream-based widgets. Therefore, no internal State binding is done and you can access to the snapshot.
+- `ReactiveBuilder` rebuilds when the Reactive value changes, using internal binding to State.
+- `ReactiveStreamBuilder` rebuilds based on the Reactive's stream, useful for integrating with other stream-based widgets. Therefore, no internal State binding is done and you can access to the snapshot.
 
 ## Tips and Best Practices
 
-Using `react()` or `Reactive\<T>`.bind() inside a State class is the most common use case but should be used wisely cause each change triggers a setState().\
-If you have many Reactive values changing frequently, or all your state does not depend on them, consider using `Reactive\<T>` + `ReactiveBuilder` or `ReactiveStreamBuilder` to limit rebuilds to only the widgets that need them.\
+| DO                                                               | DON'T                                                                 | Reason                                                                                         |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `user.value = user.value.copyWith(name: "Max")`                  | `user.value.name = "Max"` (without user.notify())                     | Reactive does not detect in-place mutations. You must call `notify()` after in-place mutations |
+| `user.mutate((u) { u.name = "Max"; })`                           | Mutate the model outside Reactive                                     | Ensures `notify()` is called                                                                   |
+| `counter.update((v) => otherValue)`                              | `counter.mutate((v) { v = otherValue; })`                             | Mutate will not change the reference, so no change will be detected. Use update instead.       |
+| Use `Reactive.combine` or `Reactive.computed` for derived values | Manually listen to multiple Reactives                                 | Simplifies code and ensures proper cleanup                                                     |
+| `final myReactive= initialValue.reactive();`                     | `final myReactive=  initialValue.reactive().reactive().reactive()...` | Avoid chaining reactives, it's unnecessary and wasteful.                                       |
+| Use `ReactiveBuilder` or `ReactiveStreamBuilder` for UI updates  | Manually bind Reactives to States for UI updates                      | Simplifies code and ensures better performance (see below)                                     |
+
+Using `react()` or `Reactive<T>`.bind() inside a State class is the most common use case but should be used wisely cause each change triggers a setState().\
+If you have many Reactive values changing frequently, or all your state does not depend on them, consider using `Reactive<T>` + `ReactiveBuilder` or `ReactiveStreamBuilder` to limit rebuilds to only the widgets that need them.\
 Here are some examples:
 
 ```dart
@@ -307,7 +367,7 @@ class _CounterWidgetState extends State<CounterWidget> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text('Counter: $value'), //the state rebuilds on counter change
+        Text('Counter: $counter'), //the state rebuilds on counter change
         ReactiveBuilder(
           reactive: counterNotBound, // only this widget rebuilds on counterNotBound change
           builder: (value) => Text('Counter: $value'),
@@ -328,4 +388,5 @@ class _CounterWidgetState extends State<CounterWidget> {
 
 ## License
 
-MIT — do whatever you want, just don’t blame the code
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Do whatever you want but don't blame the code ;).
