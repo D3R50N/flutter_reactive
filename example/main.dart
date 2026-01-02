@@ -19,13 +19,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
+// In real apps, these would be in a separate file like a store or controller
 final counter = Reactive(0);
 final counter2 = Reactive(10);
 final isVisible = Reactive(true);
@@ -40,6 +34,13 @@ final summary = Reactive.combine4(
   (c1, c2, visible, n) => '$n → ${c1 + c2} (${visible ? "visible" : "hidden"})',
 );
 
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
 class _HomePageState extends State<HomePage> {
   @override
   void initState() {
@@ -49,7 +50,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    counter.unbind(this);
+    counter.unbind(this); // not necessary, just for demonstration
     super.dispose();
   }
 

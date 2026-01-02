@@ -281,7 +281,7 @@ Constructor:
 ```dart
 Reactive(T initialValue)
 ReactiveN<T>() // nullable
-Reactive(T initialValue, bool isStrict) // isStrict: prevents notifying on same value updates. Default: true 
+Reactive(T initialValue, bool isStrict) // isStrict: prevents notifying on same value updates. Default: true
 ```
 
 Properties:
@@ -341,14 +341,73 @@ ReactiveStreamBuilder(
 
 ## Tips and Best Practices
 
-| DO                                                               | DON'T                                                                 | Reason                                                                                         |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `user.value = user.value.copyWith(name: "Max")`                  | `user.value.name = "Max"` (without user.notify())                     | Reactive does not detect in-place mutations. You must call `notify()` after in-place mutations |
-| `user.mutate((u) { u.name = "Max"; })`                           | Mutate the model outside Reactive                                     | Ensures `notify()` is called                                                                   |
-| `counter.update((v) => otherValue)`                              | `counter.mutate((v) { v = otherValue; })`                             | Mutate will not change the reference, so no change will be detected. Use update instead.       |
-| Use `Reactive.combine` or `Reactive.computed` for derived values | Manually listen to multiple Reactives                                 | Simplifies code and ensures proper cleanup                                                     |
-| `final myReactive= initialValue.reactive();`                     | `final myReactive=  initialValue.reactive().reactive().reactive()...` | Avoid chaining reactives, it's unnecessary and wasteful.                                       |
-| Use `ReactiveBuilder` or `ReactiveStreamBuilder` for UI updates  | Manually bind Reactives to States for UI updates                      | Simplifies code and ensures better performance (see below)                                     |
+- Avoid in-place mutations without notify():
+
+```dart
+final user = ReactiveN<UserModel>();
+user.value = user.value.copyWith(name: "Max") // correct
+user.mutate((u) { u?.name = "Max"; }) // correct
+
+user.value.name = "Max" // incorrect, change is done but needs manually notify()
+user.update((u) { u?.name = "Max"; return u; }) // incorrect, change is done but will not notify cause same instance and isStrict = true
+```
+
+- Use isStrict = false if you want to allow same value updates:
+
+```dart
+final user= ReactiveN<UserModel>(null, false); // not strict
+user.update((u) {
+    u?.name = "Max";
+    return u; // will notify even if same instance
+});
+```
+
+- Use `debounce()` for search inputs or frequent updates:
+
+```dart
+final searchQuery = ''.reactive();
+
+searchQuery.listen((value) {
+  search(value);  // ❌ Bad practice: this will trigger on every keystroke
+});
+searchQuery.debounce(500, (value) {
+  search(value);  // ✅ Good practice: this will trigger only after 500ms of inactivity
+});
+```
+
+- Use `combine()` or `computed()` to track multiple Reactives:
+
+```dart
+final a = Reactive(1);
+final b = Reactive(2);
+
+// ❌ BAD
+final sum = Reactive(0);
+a.listen((aVal) {
+    sum.value = aVal + b.value;
+});
+b.listen((bVal) {
+    sum.value = a.value + bVal;
+});
+
+// ✅ GOOD
+final sum = Reactive.combine2(a, b, (aVal, bVal) => aVal + bVal);
+//or int get sum => a.value + b.value;
+final combined = Reactive.computed([a, b], ()=> a.value + b.value);
+```
+
+- Don't manually change combined or computed Reactives:
+
+Combined or computed Reactives should not be set manually as they derive their value from other Reactives. Because it is possible do not mean to do it, avoid it to prevent confusion and unpredictable behavior.
+
+```dart
+final a = Reactive(1);
+final b = Reactive(2);
+final sum = Reactive.combine2(a, b, (aVal, bVal) => aVal + bVal);
+sum.value = 10; // ❌ BAD: sum is computed, don't set it manually
+```
+
+- Limit excessive rebuilds:
 
 Using `react()` or `Reactive<T>`.bind() inside a State class is the most common use case but should be used wisely cause each change triggers a setState().\
 If you have many Reactive values changing frequently, or all your state does not depend on them, consider using `Reactive<T>` + `ReactiveBuilder` or `ReactiveStreamBuilder` to limit rebuilds to only the widgets that need them.\
@@ -385,6 +444,111 @@ class _CounterWidgetState extends State<CounterWidget> {
   }
 }
 ```
+
+### Recommended Architecture
+
+For larger applications, consider separating your state management from your UI components. Use Reactive variables in your store or controller classes, and bind them to your UI using `ReactiveBuilder` or `ReactiveStreamBuilder`. This approach promotes a cleaner architecture and better separation of concerns.
+
+```dart
+// lib/stores/auth_store.dart
+import 'package:flutter_reactive/flutter_reactive.dart';
+class AuthStore {
+  static final user = ReactiveN<UserModel>(); // static so can be used globally if needed
+
+  static bool get isLoggedIn => user.value != null;
+
+  static void login(UserModel newUser) {
+    user.value = newUser;
+  }
+
+  static void logout() {
+    user.value = null;
+  }
+}
+
+```dart
+// lib/stores/form_store.dart
+import 'package:flutter_reactive/flutter_reactive.dart';
+class FormStore {
+  final username = ''.reactive(); // or Reactive("");
+  final password = ''.reactive();
+
+  final isValid = Reactive.combine2(
+    username,
+    password,
+    (u, p) => u.isNotEmpty && p.isNotEmpty && p.length >= 6,
+  );
+  
+  
+  void updateUsername(String value) {
+    username.value = value;
+  }
+  
+  void updatePassword(String value) {
+    password.value = value;
+  }
+
+  void save()async {
+    if(isValid.isTrue){
+      final json = await db.login(username.value, password.value);
+      AuthStore.login(UserModel.fromJson(json)); // save user globally
+    }
+  }
+  
+}
+```
+
+```dart
+// lib/widgets/login_form.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_reactive/flutter_reactive.dart';
+import '../stores/form_store.dart';
+class LoginForm extends StatelessWidget {
+  final FormStore store = FormStore();
+
+  void initState() {
+    AuthStore.user.bind(this); // bind to AuthStore user to update UI on login/logout
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AuthStore.isLoggedIn
+      ? Column(
+          children: [
+            Text('Welcome, ${AuthStore.user.value?.name}!'),
+            ElevatedButton(
+              onPressed: () => AuthStore.logout(),
+              child: Text('Logout'),
+            ),
+          ],
+        )
+      : Column(
+          children: [
+            TextField(
+              onChanged: store.updateUsername,
+              decoration: InputDecoration(labelText: 'Username'),
+            ),
+        TextField(
+          onChanged: store.updatePassword,
+          decoration: InputDecoration(labelText: 'Password'),
+          obscureText: true,
+        ),
+        ReactiveBuilder(
+          reactive: store.isValid,
+          builder: (isValid) {
+            return ElevatedButton(
+              onPressed: isValid ? store.save : null,
+              child: Text('Login'),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+```
+
+In this example, the `AuthStore` manages the global user state, while the `FormStore` handles the login form state. The `LoginForm` widget binds to the `AuthStore` to update the UI based on the authentication state.
 
 ## License
 

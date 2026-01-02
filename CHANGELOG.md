@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.4
+
+- Added "Recommended Architecture" section to README
+- Minor changes in example app
+
 ## 0.0.3
 
 - Added ReactiveN for nullable types
