@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.5
+
+- Update README
+
 ## 0.0.4
 
 - Added "Recommended Architecture" section to README

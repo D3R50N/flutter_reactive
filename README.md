@@ -465,6 +465,7 @@ class AuthStore {
     user.value = null;
   }
 }
+```
 
 ```dart
 // lib/stores/form_store.dart
