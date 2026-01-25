@@ -1,7 +1,7 @@
 # Flutter Reactive
 
-A lightweight reactive system for Flutter, inspired by simple state binding.
-No ChangeNotifier, no boilerplate — just Reactive values bound to States and optional streams.
+Goodbye repetitive setState() calls! Welcome to Flutter Reactive.
+No ChangeNotifier, no boilerplate — just Reactive values bound to States.
 
 ## Features
 
@@ -301,6 +301,7 @@ Methods:
 - `dispose()`
 - `mutate(void Function(T) mutator)`
 - `debounce(int milliseconds, void Function(T) callback)`
+- (For Reactive List) `transform({ bool Function(T)? filter,  Comparable<dynamic> Function(T)? sortBy,  bool? sortByDesc,  bool? reverse,  bool? shuffle,  int? take,})`
 
 Static Methods:
 
@@ -450,9 +451,9 @@ class _CounterWidgetState extends State<CounterWidget> {
 For larger applications, consider separating your state management from your UI components. Use Reactive variables in your store or controller classes, and bind them to your UI using `ReactiveBuilder` or `ReactiveStreamBuilder`. This approach promotes a cleaner architecture and better separation of concerns.
 
 ```dart
-// lib/stores/auth_store.dart
+// lib/services/auth_service.dart
 import 'package:flutter_reactive/flutter_reactive.dart';
-class AuthStore {
+class AuthService {
   static final user = ReactiveN<UserModel>(); // static so can be used globally if needed
 
   static bool get isLoggedIn => user.value != null;
@@ -489,10 +490,10 @@ class FormStore {
     password.value = value;
   }
 
-  void save()async {
+  Future<void> save() async {
     if(isValid.isTrue){
       final json = await db.login(username.value, password.value);
-      AuthStore.login(UserModel.fromJson(json)); // save user globally
+      AuthService.login(UserModel.fromJson(json)); // save user globally
     }
   }
   
@@ -508,17 +509,17 @@ class LoginForm extends StatelessWidget {
   final FormStore store = FormStore();
 
   void initState() {
-    AuthStore.user.bind(this); // bind to AuthStore user to update UI on login/logout
+    AuthService.user.bind(this); // bind to AuthService user to update UI on login/logout
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthStore.isLoggedIn
+    return AuthService.isLoggedIn
       ? Column(
           children: [
-            Text('Welcome, ${AuthStore.user.value?.name}!'),
+            Text('Welcome, ${AuthService.user.value?.name}!'),
             ElevatedButton(
-              onPressed: () => AuthStore.logout(),
+              onPressed: () => AuthService.logout(),
               child: Text('Logout'),
             ),
           ],
@@ -549,7 +550,7 @@ class LoginForm extends StatelessWidget {
 }
 ```
 
-In this example, the `AuthStore` manages the global user state, while the `FormStore` handles the login form state. The `LoginForm` widget binds to the `AuthStore` to update the UI based on the authentication state.
+In this example, the `AuthService` manages the global user state, while the `FormStore` handles the login form state. The `LoginForm` widget binds to the `AuthService` to update the UI based on the authentication state.
 
 ## License
 

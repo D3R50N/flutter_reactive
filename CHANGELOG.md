@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.6
+
+- Added `length` extension to StringReactive
+- Added `transform` method to Reactive lists
+
 ## 0.0.5
 
 - Update README

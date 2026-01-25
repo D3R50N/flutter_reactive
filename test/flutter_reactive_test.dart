@@ -20,15 +20,24 @@ void main() {
   });
 
   test("List changes", () {
-    final list = Reactive([]);
+    final list = Reactive(<int>[]);
     list.listen((v) {
       debugPrint("List: $v");
     });
+
+    final evenList = list.transform(
+      filter: (element) => element % 2 == 0,
+      sortBy: (element) => 10 - element,
+    );
+    evenList.listen((v) {
+      debugPrint("Even List: $v");
+    });
     list.add(1);
-    list.add("jd");
-    list.addToSet(1);
-    list.remove(1);
-    list.removeAll(1);
+    list.add(2);
+    list.add(3);
+    list.add(4);
+    list.add(5);
+    list.add(6);
   });
 
   test("Combine reactives", () {
@@ -63,7 +72,6 @@ void main() {
     user.mutate((u) {
       u?.name = "oedo";
     });
-
   });
 }
 

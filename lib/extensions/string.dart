@@ -8,6 +8,9 @@ extension ReactiveString on Reactive<String> {
   /// Returns true if the string is not empty after trimming whitespace.
   bool get isNotEmpty => value.trim().isNotEmpty;
 
+  /// Returns the length of the string.
+  int get length => value.length;
+
   /// Clears the string, setting it to an empty value.
   void clear() => value = '';
 
