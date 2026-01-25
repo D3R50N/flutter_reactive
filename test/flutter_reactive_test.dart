@@ -25,16 +25,14 @@ void main() {
       debugPrint("List: $v");
     });
 
-    final evenList = list.transform(
-      filter: (element) => element % 2 == 0,
-      sortBy: (element) => 10 - element,
-    );
+    final evenList = list.transform(filter: (element) => element % 2 == 0);
     evenList.listen((v) {
       debugPrint("Even List: $v");
     });
     list.add(1);
     list.add(2);
     list.add(3);
+    list.remove(2);
     list.add(4);
     list.add(5);
     list.add(6);

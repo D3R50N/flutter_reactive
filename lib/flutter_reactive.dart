@@ -391,25 +391,23 @@ extension ListReactiveExt<T> on Reactive<List<T>> {
 
     listen((l) {
       var filtered = l.where(test).toList();
-      if (filtered.isNotEmpty) {
-        if (sortBy != null) {
-          filtered.sort((a, b) {
-            if (sortByDesc == true) return sortBy(b).compareTo(sortBy(a));
-            return sortBy(a).compareTo(sortBy(b));
-          });
-        }
-        if (reverse == true) {
-          filtered = filtered.reversed.toList();
-        }
-        if (shuffle == true) {
-          filtered.shuffle();
-        }
-        if (take != null) {
-          filtered = filtered.take(take).toList();
-        }
-
-        r.value = filtered;
+      if (sortBy != null) {
+        filtered.sort((a, b) {
+          if (sortByDesc == true) return sortBy(b).compareTo(sortBy(a));
+          return sortBy(a).compareTo(sortBy(b));
+        });
       }
+      if (reverse == true) {
+        filtered = filtered.reversed.toList();
+      }
+      if (shuffle == true) {
+        filtered.shuffle();
+      }
+      if (take != null) {
+        filtered = filtered.take(take).toList();
+      }
+
+      r.value = filtered;
     });
 
     return r;

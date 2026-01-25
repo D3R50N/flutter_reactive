@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.7
+
+- Fix `transform` where empty list are ignored
+
 ## 0.0.6
 
 - Added `length` extension to StringReactive
