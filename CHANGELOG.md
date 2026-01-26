@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.8
+
+- New method `build` for reactives. Shortcut for `ReactiveBuilder`
+- New method `as` for reactives. Similar to `computed`
+- Inside `transform`, filter can change dynamically now
+
 ## 0.0.7
 
 - Fix `transform` where empty list are ignored

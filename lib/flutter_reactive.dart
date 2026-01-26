@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/extensions/state.dart';
+import 'package:flutter_reactive/widgets/reactive_builder.dart';
 
 import 'flutter_reactive_n.dart';
 
@@ -39,10 +40,10 @@ typedef _ReactiveListener<T> = void Function(T value);
 /// All bound widgets will automatically rebuild.
 class Reactive<T> {
   /// Creates a new [Reactive] with an initial value.
-  Reactive(this._value, [this._strict = true]);
+  Reactive(this._value, [this.strict = true]);
 
   T _value;
-  final bool _strict;
+  final bool strict;
 
   /// States bound to this reactive.
   /// Every bound state will be rebuilt when the value changes.
@@ -73,7 +74,7 @@ class Reactive<T> {
   ///
   /// If the value did not change, nothing happens.
   void set(T newValue) {
-    if (_equals(newValue) && _strict) return;
+    if (_equals(newValue) && strict) return;
     _value = newValue;
     notify();
   }
@@ -334,82 +335,31 @@ class Reactive<T> {
     ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C, l[3] as D, l[4] as E));
   }
 
+  /// Returns another reactive based on this one using [parser]
+  ///
+  /// Example:
+  /// ```dart
+  /// final list = Reactive([]);
+  /// final length = list.as((l)=>l.length);
+  /// ```
+  Reactive<R> as<R>(R Function(T v) parser) {
+    final r = Reactive(parser(value), strict);
+
+    listen((v) {
+      r._value = parser(v);
+    });
+
+    return r;
+  }
+
+  /// Shortcut for [ReactiveBuilder]
+  ReactiveBuilder<T> build(Widget Function(T v) builder) {
+    return ReactiveBuilder<T>(reactive: this, builder: builder);
+  }
+
   /// Returns the string representation of the current value.
   @override
   String toString() {
     return _value.toString();
-  }
-}
-
-extension ListReactiveExt<T> on Reactive<List<T>> {
-  /// Transforms the current reactive list into a new reactive list by applying
-  /// optional filtering, sorting, and list operations.
-  ///
-  /// This method listens to changes on the source reactive list and keeps the
-  /// returned reactive list in sync after applying the given transformations.
-  ///
-  /// Parameters:
-  /// - [filter]: A predicate used to filter elements.
-  ///   If null, all elements are kept.
-  /// - [sortBy]: A function that returns a comparable value used to sort elements.
-  ///   If null, no sorting is applied.
-  /// - [sortByDesc]: Whether sorting should be in descending order.
-  ///   Only used when [sortBy] is provided. Defaults to false.
-  /// - [reverse]: Whether to reverse the resulting list.
-  /// - [shuffle]: Whether to shuffle the resulting list randomly.
-  /// - [take]: Limits the number of elements in the resulting list.
-  ///
-  /// Returns:
-  /// A new [Reactive<List<T>>] that reflects the transformed version of the
-  /// source list and updates automatically when the source list changes.
-  ///
-  /// Example:
-  /// ```dart
-  /// final users = Reactive<List<User>>([...]);
-  ///
-  /// final topActiveUsers = users.transform(
-  ///   filter: (u) => u.isActive,
-  ///   sortBy: (u) => u.score,
-  ///   sortByDesc: true,
-  ///   take: 10,
-  /// );
-  /// ```
-  ///
-  /// In this example, the returned reactive list will always contain the
-  /// top 10 active users sorted by score in descending order.
-  Reactive<List<T>> transform({
-    bool Function(T element)? filter,
-    Comparable<dynamic> Function(T element)? sortBy,
-    bool? sortByDesc,
-    bool? reverse,
-    bool? shuffle,
-    int? take,
-  }) {
-    bool Function(T) test = filter ?? (_) => true;
-
-    final r = Reactive(_value.where(test).toList(), _strict);
-
-    listen((l) {
-      var filtered = l.where(test).toList();
-      if (sortBy != null) {
-        filtered.sort((a, b) {
-          if (sortByDesc == true) return sortBy(b).compareTo(sortBy(a));
-          return sortBy(a).compareTo(sortBy(b));
-        });
-      }
-      if (reverse == true) {
-        filtered = filtered.reversed.toList();
-      }
-      if (shuffle == true) {
-        filtered.shuffle();
-      }
-      if (take != null) {
-        filtered = filtered.take(take).toList();
-      }
-
-      r.value = filtered;
-    });
-
-    return r;
   }
 }

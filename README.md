@@ -227,6 +227,16 @@ combined.listen((values) {
 });
 ```
 
+## Reactive based on another one
+
+You can create a reactive that depends on another one. Similar to `combine` or `compute` but for one value.
+
+```dart
+final text = Reactive("");
+final length = text.as((t)=>t.length); // changes when text change
+
+```
+
 ## Dispose the Reactive
 
 If you want to clean up all bindings and listeners:
@@ -302,6 +312,7 @@ Methods:
 - `mutate(void Function(T) mutator)`
 - `debounce(int milliseconds, void Function(T) callback)`
 - (For Reactive List) `transform({ bool Function(T)? filter,  Comparable<dynamic> Function(T)? sortBy,  bool? sortByDesc,  bool? reverse,  bool? shuffle,  int? take,})`
+- `as(R Function(T))`
 
 Static Methods:
 
@@ -311,7 +322,7 @@ Static Methods:
 
 Widgets:
 
-- `ReactiveBuilder<T>`
+- `ReactiveBuilder<T>` or `build(Widget Function(T))` method
 
 ```dart
 final counter= 0.reactive();
@@ -319,6 +330,7 @@ ReactiveBuilder(
     reactive: counter,
     builder: (value) => Text('Counter: $value'),
 );
+counter.build((value) => Text('Counter: $value'));
 ```
 
 - `ReactiveStreamBuilder<T>`
@@ -480,12 +492,12 @@ class FormStore {
     password,
     (u, p) => u.isNotEmpty && p.isNotEmpty && p.length >= 6,
   );
-  
-  
+
+
   void updateUsername(String value) {
     username.value = value;
   }
-  
+
   void updatePassword(String value) {
     password.value = value;
   }
@@ -496,7 +508,7 @@ class FormStore {
       AuthService.login(UserModel.fromJson(json)); // save user globally
     }
   }
-  
+
 }
 ```
 
