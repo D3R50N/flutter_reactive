@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.9
+
+- Try catch listeners to avoid break
+
 ## 0.0.8
 
 - New methodz `build`, `as`, `throttle`, `require`, `setAsync`

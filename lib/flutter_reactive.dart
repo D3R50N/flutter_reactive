@@ -162,7 +162,9 @@ class Reactive<T> {
   /// Notifies all listeners with the current value.
   void _notifyListeners() {
     for (final callback in _listeners) {
-      callback(value);
+      try {
+        callback(value);
+      } catch (_) {}
     }
   }
 
