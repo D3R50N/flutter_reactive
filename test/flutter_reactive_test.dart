@@ -1,9 +1,31 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
+import 'package:flutter_reactive/core/validator.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('Validator', () {
+    final counter = 0.reactive();
+    counter.require((v) => v > 0).require((v) => v < 4, "Te");
+
+    counter.listen((v) {
+      debugPrint("Counter: $v");
+    });
+
+    counter.inc();
+    counter.inc();
+    counter.dec();
+    counter.dec();
+    counter.dec();
+    counter.inc();
+    counter.inc();
+    try {
+      counter.inc(); // throw
+    } on ValidatorError catch (e) {
+      print("Oups $e, value ${e.value} is not good");
+    }
+  });
   test('Nums changes', () {
     final counter = 0.reactive();
     counter.listen((v) {

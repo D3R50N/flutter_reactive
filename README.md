@@ -48,10 +48,38 @@ counter.value;      // get
 counter.value = 1;  // set
 counter.set(2);     // explicit
 
+counter.setAsync(getCounterFromDb()); // will update after
+
 user.set(UserModel(...)); // set nullable value
 
 counterNotStrict.value=1;
 counterNotStrict.value=1; //still notifies because not strict
+
+```
+
+Control which values can be used.
+
+```dart
+counter
+    .require((v) => v > 0) // any value under 0 will be ignored
+    .require((v) => v <= 10, "Counter should be under 10"); // any value over 10 will an error
+
+counter.value = 4;
+counter.value = 0; // still 4
+counter.value = -5; // still 4
+counter.value = 10; // throw an ValidatorError
+
+// you can catch to check what happened
+counter.value = 9;
+try{
+  counter.increment(); // throw
+} on ValidatorError catch(e) {
+  print(e.message); // "Counter should be under 10"
+  print(e.value); // 10 (values that goes wrong)
+}
+
+// To ensure all validators are applied, it's recommended to use `require` when declaring the reactive.
+final name = Reactive("").require((n)=> n.trim() != ""); // initialValue does not count
 
 ```
 
@@ -167,13 +195,21 @@ StreamBuilder<int>(
 );
 ```
 
-## Using debounce with Reactive
+## Using debounce and throttle with Reactive
 
 You can debounce updates to avoid too many notifications in a short time.Also useful for search inputs and forms.
 
 ```dart
 final counter = Reactive(0);
 counter.debounce(Duration(seconds: 3).inMilliseconds, (value) {
+  print("Counter $value");
+});
+```
+
+Similar to debounce, but in throttle way.
+
+```dart
+counter.throttle(3000, (value) {
   print("Counter $value");
 });
 ```

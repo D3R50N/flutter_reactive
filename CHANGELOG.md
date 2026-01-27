@@ -2,9 +2,9 @@
 
 ## 0.0.8
 
-- New method `build` for reactives. Shortcut for `ReactiveBuilder`
-- New method `as` for reactives. Similar to `computed`
+- New methodz `build`, `as`, `throttle`, `require`, `setAsync`
 - Inside `transform`, filter can change dynamically now
+- Added new extensions on `DateTime`, `Duration` and `Color`
 
 ## 0.0.7
 

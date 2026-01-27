@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_reactive/core/validator.dart';
 import 'package:flutter_reactive/extensions/state.dart';
 import 'package:flutter_reactive/widgets/reactive_builder.dart';
 
@@ -52,6 +53,9 @@ class Reactive<T> {
   /// Raw listeners notified on value changes.
   final List<_ReactiveListener<T>> _listeners = [];
 
+  /// Validators to control incoming values.
+  final List<Validator<T>> _validators = [];
+
   /// Stream controller
   final _controller = StreamController<T>.broadcast();
 
@@ -74,9 +78,18 @@ class Reactive<T> {
   ///
   /// If the value did not change, nothing happens.
   void set(T newValue) {
+    for (final v in _validators) {
+      final valid = v.run(newValue);
+      if (!valid) return;
+    }
     if (_equals(newValue) && strict) return;
     _value = newValue;
     notify();
+  }
+
+  /// Sets asynchronously
+  Future<void> setAsync(Future<T> futureValue) async {
+    value = await futureValue;
   }
 
   /// Updates the value using a transformation function.
@@ -125,6 +138,17 @@ class Reactive<T> {
       timer = Timer(Duration(milliseconds: milliseconds), () {
         callback(value);
       });
+    });
+  }
+
+  /// Throttle value change notifications.
+  void throttle(int milliseconds, _ReactiveListener<T> callback) {
+    Timer? timer;
+    listen((value) {
+      if (timer == null) {
+        callback(value);
+        timer = Timer(Duration(milliseconds: milliseconds), () => timer = null);
+      }
     });
   }
 
@@ -355,6 +379,12 @@ class Reactive<T> {
   /// Shortcut for [ReactiveBuilder]
   ReactiveBuilder<T> build(Widget Function(T v) builder) {
     return ReactiveBuilder<T>(reactive: this, builder: builder);
+  }
+
+  /// Add a new validator
+  Reactive<T> require(bool Function(T v) validator, [String? message]) {
+    _validators.add(Validator(validator, message));
+    return this;
   }
 
   /// Returns the string representation of the current value.
