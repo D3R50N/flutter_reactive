@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.0
+
+- Added transaction support with `Reactive.run(...)`
+- Added `save`, `restore`, and `unsave` methods on `Reactive`
+- Added `when` method on `Reactive` for conditional reactions
+- Added `sort` method to `ReactiveList`
+- Added optional strict mode argument to `.reactive([strict])`
+- Renamed `Validator` to `ReactiveValidator`
+- Renamed `ValidatorError` to `ReactiveValidatorError`
+- Fixed `as` method to correctly propagate reactive updates
+- Updated README with new transaction features and examples
+- Update example app with transaction usage
+
 ## 0.0.9
 
 - Try catch listeners to avoid break

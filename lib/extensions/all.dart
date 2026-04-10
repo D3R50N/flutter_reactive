@@ -9,8 +9,9 @@ extension ReactiveAll<T> on T {
   /// final counter = 0.reactive(); // Reactive<int>
   /// final title = 'Hello'.reactive(); // Reactive<String>
   /// final enabled = true.reactive(); // Reactive<bool>
+  /// final nonStrictValue = 42.reactive(false); // Reactive<int> with strict mode disabled
   /// ```
-  Reactive<T> reactive() {
-    return Reactive(this);
+  Reactive<T> reactive([bool strict = true]) {
+    return Reactive(this, strict);
   }
 }

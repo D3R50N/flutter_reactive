@@ -1,12 +1,11 @@
+library;
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive/core/validator.dart';
 import 'package:flutter_reactive/extensions/state.dart';
 import 'package:flutter_reactive/widgets/reactive_builder.dart';
-
-import 'flutter_reactive_n.dart';
 
 export 'extensions/all.dart';
 export 'extensions/bool.dart';
@@ -15,9 +14,13 @@ export 'extensions/map.dart';
 export 'extensions/num.dart';
 export 'extensions/state.dart';
 export 'extensions/string.dart';
-export 'flutter_reactive_n.dart';
 export 'widgets/reactive_builder.dart';
 export 'widgets/stream_builder.dart';
+
+part 'core/transaction.dart';
+part 'core/transaction_manager.dart';
+part 'core/validator.dart';
+part 'flutter_reactive_n.dart';
 
 typedef _ReactiveListener<T> = void Function(T value);
 
@@ -54,7 +57,9 @@ class Reactive<T> {
   final List<_ReactiveListener<T>> _listeners = [];
 
   /// Validators to control incoming values.
-  final List<Validator<T>> _validators = [];
+  final List<ReactiveValidator<T>> _validators = [];
+
+  final Map<String, T> _savedStates = {};
 
   /// Stream controller
   final _controller = StreamController<T>.broadcast();
@@ -77,14 +82,23 @@ class Reactive<T> {
   /// Sets a new value.
   ///
   /// If the value did not change, nothing happens.
+  /// If the value is rejected by any validator, it is not updated and no notification occurs.
+  /// If the value is updated, all bound states are rebuilt and listeners are notified.
+  /// If the value is updated within a transaction, notifications are deferred until the transaction is committed.
   void set(T newValue) {
     for (final v in _validators) {
       final valid = v.run(newValue);
       if (!valid) return;
     }
     if (_equals(newValue) && strict) return;
-    _value = newValue;
-    notify();
+    if (ReactiveTransactionManager._inTransaction) {
+      ReactiveTransactionManager._register(this);
+      _value =
+          newValue; // register before changing value to capture the original state
+    } else {
+      _value = newValue;
+      notify();
+    }
   }
 
   /// Sets asynchronously
@@ -148,6 +162,17 @@ class Reactive<T> {
       if (timer == null) {
         callback(value);
         timer = Timer(Duration(milliseconds: milliseconds), () => timer = null);
+      }
+    });
+  }
+
+  /// Triggers an action when a condition is met.
+  /// The [condition] is evaluated on every value change, and when it returns true,
+  /// the [action] is executed with the current value.
+  void when(bool Function(T value) condition, void Function(T value) action) {
+    listen((value) {
+      if (condition(value)) {
+        action(value);
       }
     });
   }
@@ -372,7 +397,7 @@ class Reactive<T> {
     final r = Reactive(parser(value), strict);
 
     listen((v) {
-      r._value = parser(v);
+      r.value = parser(v);
     });
 
     return r;
@@ -385,9 +410,39 @@ class Reactive<T> {
 
   /// Add a new validator
   Reactive<T> require(bool Function(T v) validator, [String? message]) {
-    _validators.add(Validator(validator, message));
+    _validators.add(ReactiveValidator(validator, message));
     return this;
   }
+
+  /// Save the current value under a specific [id].
+  void save([String id = 'default']) {
+    _savedStates[id] = _value;
+  }
+
+  /// Restores a previously saved value by [id].
+  void restore([String id = 'default']) {
+    if (_savedStates.containsKey(id)) {
+      set(_savedStates[id] as T);
+    }
+  }
+
+  /// Removes a saved state by [id].
+  void unsave([String id = 'default']) {
+    _savedStates.remove(id);
+  }
+
+  /// Runs a block of code within a transaction, allowing for automatic rollback on error.
+  /// If [rollbackOnError] is true, any error thrown in the block will trigger a rollback of all changes made to Reactive instances during the transaction.
+  /// The optional [onError] callback can be used to handle errors without rolling back.
+  static FutureOr<ReactiveTransaction> run(
+    FutureOr<void> Function() block, {
+    bool rollbackOnError = true,
+    void Function(Object error)? onError,
+  }) => ReactiveTransactionManager._run(
+    block,
+    rollbackOnError: rollbackOnError,
+    onError: onError,
+  );
 
   /// Returns the string representation of the current value.
   @override

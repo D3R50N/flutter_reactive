@@ -1,6 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive/core/validator.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,7 +21,7 @@ void main() {
     counter.inc();
     try {
       counter.inc(); // throw
-    } on ValidatorError catch (e) {
+    } on ReactiveValidatorError catch (e) {
       print("Oups $e, value ${e.value} is not good");
     }
   });
@@ -92,6 +91,117 @@ void main() {
     user.mutate((u) {
       u?.name = "oedo";
     });
+  });
+
+  group('Transactions', () {
+    test('Transaction with no errors', () {
+      final counter = 0.reactive().require(
+        (v) => v >= 0,
+        "Counter cannot be negative",
+      );
+      counter.listen((v) {
+        debugPrint("Counter: $v");
+      });
+
+      Reactive.run(
+        () {
+          counter.inc(5);
+          counter.inc(3);
+          counter.dec(2);
+        },
+        onError: (error) {
+          print("Transaction failed with error: $error");
+        },
+      );
+
+      expect(counter.value, 6);
+    });
+
+    test('Transaction with errors and rollback', () {
+      final counter = 0.reactive().require(
+        (v) => v >= 0,
+        "Counter cannot be negative",
+      );
+      counter.listen((v) {
+        debugPrint("Counter: $v");
+      });
+
+      Reactive.run(
+        () {
+          counter.inc(5);
+          counter.dec(10); // This will cause an error
+          counter.inc(3); // This won't execute
+        },
+        rollbackOnError: true, // default
+        onError: (error) {
+          print("Transaction failed with error: $error");
+        },
+      );
+
+      expect(counter.value, 0);
+    });
+
+    test('Transaction with errors and no rollback', () {
+      final counter = 0.reactive().require(
+        (v) => v >= 0,
+        "Counter cannot be negative",
+      );
+      counter.listen((v) {
+        debugPrint("Counter: $v");
+      });
+
+      Reactive.run(
+        () {
+          counter.inc(5);
+          counter.dec(10); // This will cause an error
+          counter.inc(3); // This won't execute after the error
+        },
+        rollbackOnError: false,
+        onError: (error) {
+          print("Transaction failed with error: $error");
+        },
+      );
+
+      expect(counter.value, 5);
+    });
+
+    test('Manual rollback after transaction', () async {
+      final counter = 0.reactive().require(
+        (v) => v >= 0,
+        "Counter cannot be negative",
+      );
+      counter.listen((v) {
+        debugPrint("Counter: $v");
+      });
+
+      final transaction = await Reactive.run(
+        () {
+          counter.inc(5);
+          counter.dec(10); // This will cause an error
+          counter.inc(3); // This won't execute after the error
+        },
+        rollbackOnError: false,
+        onError: (error) {
+          print("Transaction failed with error: $error");
+        },
+      );
+
+      expect(counter.value, 5);
+      transaction.rollback();
+      expect(counter.value, 0);
+    });
+  });
+
+  test('When method', () {
+    final counter = 0.reactive();
+    counter.listen((v) {
+      debugPrint("Counter: $v");
+    });
+
+    counter.when((v) => v == 0, (_) => print("Counter is zero"));
+
+    counter.inc();
+    counter.dec();
   });
 }
 

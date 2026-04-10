@@ -9,6 +9,9 @@ No ChangeNotifier, no boilerplate — just Reactive values bound to States.
 - Automatic State updates when data changes
 - Manual listeners support
 - Reactive streams support (`stream`)
+- Conditional reactions with `when(...)`
+- Transaction support with optional rollback (`Reactive.run(...)`)
+- Built-in validation with `require(...)`
 - Extensions on common types (num, bool, List, String, Map, State)
 - No dependency on Flutter state management libraries
 
@@ -28,6 +31,8 @@ Create a reactive value:
 final counter = Reactive(0); // strict by default
 final user = ReactiveN<UserModel>(); // nullable
 final counterNotStrict = Reactive(0, false); // not strict, allows same value updates
+final counterByExt = 0.reactive(); // extension helper (strict by default)
+final counterByExtNotStrict = 0.reactive(false); // extension helper (not strict)
 
 ```
 
@@ -61,21 +66,22 @@ Control which values can be used.
 
 ```dart
 counter
-    .require((v) => v > 0) // any value under 0 will be ignored
-    .require((v) => v <= 10, "Counter should be under 10"); // any value over 10 will an error
+    .require((v) => v > 0) // any value <= 0 will be ignored
+    .require((v) => v <= 10, "Counter should be under 10"); // any value over 10 throws an error
 
 counter.value = 4;
 counter.value = 0; // still 4
 counter.value = -5; // still 4
-counter.value = 10; // throw an ValidatorError
+counter.value = 10; // valid
+counter.value = 11; // throws a ReactiveValidatorError
 
 // you can catch to check what happened
-counter.value = 9;
+counter.value = 10;
 try{
-  counter.increment(); // throw
-} on ValidatorError catch(e) {
+  counter.increment(); // tries 11, throws
+} on ReactiveValidatorError catch(e) {
   print(e.message); // "Counter should be under 10"
-  print(e.value); // 10 (values that goes wrong)
+  print(e.value); // 11 (value that failed validation)
 }
 
 // To ensure all validators are applied, it's recommended to use `require` when declaring the reactive.
@@ -168,6 +174,21 @@ Remove the listener:
 
 ```dart
 counter.unlisten(myCallback);
+```
+
+## Conditional reaction with `when`
+
+Trigger a side effect only when a condition is true.
+
+```dart
+final counter = 0.reactive();
+
+counter.when((v) => v == 0, (_) {
+  print("Counter is zero");
+});
+
+counter.value = 1; // nothing
+counter.value = 0; // prints "Counter is zero"
 ```
 
 ## Using Streams
@@ -273,6 +294,64 @@ final length = text.as((t)=>t.length); // changes when text change
 
 ```
 
+## Transactions
+
+Use transactions to batch updates and optionally rollback on error.
+
+```dart
+final counter = 0.reactive().require(
+  (v) => v >= 0,
+  "Counter cannot be negative",
+);
+
+Reactive.run(() {
+  counter.inc(5);
+  counter.dec(2);
+});
+
+print(counter.value); // 3
+```
+
+Rollback is enabled by default:
+
+```dart
+final counter = 0.reactive().require(
+  (v) => v >= 0,
+  "Counter cannot be negative",
+);
+
+Reactive.run(
+  () {
+    counter.inc(5);
+    counter.dec(10); // throws, full transaction is rolled back
+  },
+  onError: (error) => print(error),
+);
+
+print(counter.value); // 0
+```
+
+Manual rollback is also possible:
+
+```dart
+final counter = 0.reactive().require(
+  (v) => v >= 0,
+  "Counter cannot be negative",
+);
+
+final transaction = await Reactive.run(
+  () {
+    counter.inc(5);
+    counter.dec(2);
+  },
+  rollbackOnError: false, // ensure no rollback on error, we will do it manually
+);
+
+print(counter.value); // 3
+transaction.rollback();
+print(counter.value); // 0
+```
+
 ## Dispose the Reactive
 
 If you want to clean up all bindings and listeners:
@@ -318,6 +397,7 @@ count.increment(); // adds 1
 count.decrement(); // subtracts 1
 items.addToSet('item'); // adds if not present
 items.remove('item'); // removes if present
+items.sort(); // sorts and notifies listeners
 ```
 
 ## Reactive API
@@ -325,9 +405,9 @@ items.remove('item'); // removes if present
 Constructor:
 
 ```dart
-Reactive(T initialValue)
-ReactiveN<T>() // nullable
-Reactive(T initialValue, bool isStrict) // isStrict: prevents notifying on same value updates. Default: true
+Reactive(T initialValue, [bool strict = true])
+ReactiveN<T>([T? initialValue, bool strict = true]) // nullable
+T.reactive([bool strict = true]) // extension helper
 ```
 
 Properties:
@@ -338,23 +418,37 @@ Properties:
 Methods:
 
 - `set(T newValue)`
+- `setAsync(Future<T> futureValue)`
 - `update(T Function(T current))`
+- `mutate(void Function(T) mutator)`
 - `bind(State state)`
 - `unbind(State state)`
 - `listen(void Function(T) callback)`
 - `unlisten(void Function(T) callback)`
+- `debounce(int milliseconds, void Function(T) callback)`
+- `throttle(int milliseconds, void Function(T) callback)`
+- `when(bool Function(T value) condition, void Function(T value) action)`
+- `require(bool Function(T v) validator, [String? message])`
+- `save([String id = 'default'])`
+- `restore([String id = 'default'])`
+- `unsave([String id = 'default'])`
 - `notify()`
 - `dispose()`
-- `mutate(void Function(T) mutator)`
-- `debounce(int milliseconds, void Function(T) callback)`
-- (For Reactive List) `transform({ bool Function(T)? filter,  Comparable<dynamic> Function(T)? sortBy,  bool? sortByDesc,  bool? reverse,  bool? shuffle,  int? take,})`
 - `as(R Function(T))`
+- (For Reactive List) `sort([int Function(T a, T b)? compare])`
+- (For Reactive List) `transform({ bool Function(T)? filter,  Comparable<dynamic> Function(T)? sortBy,  bool? sortByDesc,  bool? reverse,  bool? shuffle,  int? take,})`
 
 Static Methods:
 
 - `combine(List<Reactive> reactives, R Function(List<dynamic>) combiner)`
 - `combine2`, `combine3`, `combine4`, `combine5`
 - `computed(List<Reactive> reactives, [R Function(List<dynamic>)? combiner])`
+- `run(FutureOr<void> Function() block, { bool rollbackOnError = true, void Function(Object error)? onError })`
+
+### Migration Notes (0.1.0)
+
+- `Validator` was renamed to `ReactiveValidator`
+- `ValidatorError` was renamed to `ReactiveValidatorError`
 
 Widgets:
 

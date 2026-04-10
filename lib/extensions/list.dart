@@ -49,6 +49,12 @@ extension ReactiveList<T> on Reactive<List<T>> {
     return null;
   }
 
+  /// Sort the list in place using the provided [compare] function.
+  void sort([int Function(T a, T b)? compare]) {
+    value.sort(compare);
+    notify();
+  }
+
   /// Transforms the current reactive list into a new reactive list by applying
   /// optional filtering, sorting, and list operations.
   ///
