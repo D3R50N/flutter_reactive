@@ -217,6 +217,7 @@ class Reactive<T> {
 
   /// Dispose everything when done.
   void dispose() {
+    unsaveAll();
     _listeners.clear();
     _boundStates.clear();
     _controller.close();
@@ -429,6 +430,11 @@ class Reactive<T> {
   /// Removes a saved state by [id].
   void unsave([String id = 'default']) {
     _savedStates.remove(id);
+  }
+
+  /// Removes all saved states.
+  void unsaveAll() {
+    _savedStates.clear();
   }
 
   /// Runs a block of code within a transaction, allowing for automatic rollback on error.

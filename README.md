@@ -432,6 +432,7 @@ Methods:
 - `save([String id = 'default'])`
 - `restore([String id = 'default'])`
 - `unsave([String id = 'default'])`
+- `unsaveAll()`
 - `notify()`
 - `dispose()`
 - `as(R Function(T))`

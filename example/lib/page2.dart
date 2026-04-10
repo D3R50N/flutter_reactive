@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
@@ -55,6 +57,40 @@ class StreamShowcasePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (Random().nextBool()) {
+                      transactionCounter.inc(10);
+                    } else {
+                      transactionCounter.dec(10);
+                    }
+                  },
+                  child: const Text('Increment or Decrement Counter'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    transactionCounter.save();
+                  },
+                  child: const Text('Save Counter State'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    transactionCounter.restore();
+                  },
+                  child: const Text('Restore Counter State'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    transactionCounter.unsave();
+                  },
+                  child: const Text('Clear Saved State'),
+                ),
+              ],
+            ),
             Expanded(
               child: Card(
                 child: Padding(

@@ -3,7 +3,7 @@
 ## 0.1.0
 
 - Added transaction support with `Reactive.run(...)`
-- Added `save`, `restore`, and `unsave` methods on `Reactive`
+- Added `save`, `restore`, `unsave` and `unsaveAll` methods on `Reactive`
 - Added `when` method on `Reactive` for conditional reactions
 - Added `sort` method to `ReactiveList`
 - Added optional strict mode argument to `.reactive([strict])`
