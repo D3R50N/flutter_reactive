@@ -193,7 +193,7 @@ class _ShowcasePageState extends State<ShowcasePage> {
     transaction.rollback();
     _pendingTransaction = null;
     _addLog('Manual rollback executed: $before -> ${txCounter.value}');
-    if (mounted) setState(() {});
+    updateState();
   }
 
   void _incrementStrictDemoValues() {
