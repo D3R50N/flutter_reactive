@@ -454,6 +454,8 @@ Static Methods:
 Widgets:
 
 - `ReactiveBuilder<T>` or `build(Widget Function(T))` method
+- `ReactiveStreamBuilder<T>`
+- `ReactiveStateBuilder`
 
 ```dart
 final counter= 0.reactive();
@@ -476,6 +478,12 @@ ReactiveStreamBuilder(
       return Text('Counter: ${snapshot.data}');
     },
 );
+```
+
+- `ReactiveStateBuilder` for multiple states in one builder
+
+```dart
+
 ```
 
 ### Difference between ReactiveBuilder and ReactiveStreamBuilder

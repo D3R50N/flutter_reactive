@@ -7,6 +7,7 @@
 - Added `when` method on `Reactive` for conditional reactions
 - Added `sort` method to `ReactiveList`
 - Added optional strict mode argument to `.reactive([strict])`
+- Added `ReactiveStateBuilder` widget for multiple states in one builder
 - Renamed `Validator` to `ReactiveValidator`
 - Renamed `ValidatorError` to `ReactiveValidatorError`
 - Fixed `as` method to correctly propagate reactive updates

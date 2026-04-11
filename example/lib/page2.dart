@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
+Reactive<String>? _nameReactive;
+
 class StreamShowcasePage extends StatelessWidget {
   const StreamShowcasePage({
     super.key,
@@ -56,7 +58,58 @@ class StreamShowcasePage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            Text(
+              'Reactive State Builder for multiple states:',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             const SizedBox(height: 8),
+            ReactiveStateBuilder(
+              initialState: false,
+              states: {
+                true:
+                    (reactive) => ElevatedButton(
+                      onPressed: () => reactive.value = false,
+                      child: const Text('Disable Transaction'),
+                    ),
+                false:
+                    (reactive) => ElevatedButton(
+                      onPressed: () => reactive.value = true,
+                      child: const Text('Enable Transaction'),
+                    ),
+              },
+            ),
+            ReactiveStateBuilder(
+              initialState: _nameReactive?.value ?? 'No name',
+              onInit: (reactive) {
+                _nameReactive = reactive;
+              },
+              states: {
+                'No name':
+                    (reactive) => ElevatedButton(
+                      onPressed: () => reactive.value = 'John Doe',
+                      child: const Text('My name is John Doe'),
+                    ),
+                'John Doe':
+                    (reactive) => ElevatedButton(
+                      onPressed: () => reactive.value = 'No name',
+                      child: const Text('I don\'t remember my name'),
+                    ),
+              },
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _nameReactive?.value = 'Unexistent Name';
+              },
+              child: const Text('Set Unexistent Name'),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Manage the counter state with :',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+
             Wrap(
               spacing: 12,
               runSpacing: 8,

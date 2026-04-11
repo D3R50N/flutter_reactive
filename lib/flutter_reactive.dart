@@ -15,6 +15,7 @@ export 'extensions/num.dart';
 export 'extensions/state.dart';
 export 'extensions/string.dart';
 export 'widgets/reactive_builder.dart';
+export 'widgets/state_builder.dart';
 export 'widgets/stream_builder.dart';
 
 part 'core/transaction.dart';
