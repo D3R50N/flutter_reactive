@@ -1,7 +1,13 @@
 import 'package:flutter_reactive/flutter_reactive.dart';
 
-/// Extension for [Reactive<List<T>>] providing common list utilities.
-extension ReactiveList<T> on Reactive<List<T>> {
+/// Extension for [Reactive<Iterable<T>>] providing common list utilities.
+extension ReactiveIterable<T> on Reactive<Iterable<T>> {
+  T get first => value.first;
+  T? get firstOrNull => value.firstOrNull;
+
+  T get last => value.last;
+  T? get lastOrNull => value.lastOrNull;
+
   /// Returns true if the list is empty.
   bool get isEmpty => value.isEmpty;
 
@@ -11,32 +17,10 @@ extension ReactiveList<T> on Reactive<List<T>> {
   /// Returns the length of the list.
   int get length => value.length;
 
-  /// Adds [item] to the end of the list.
-  void add(T item) => value = [...value, item];
-
-  /// Adds all items from [items] to the end of the list.
-  void addAll(Iterable<T> items) => value = [...value, ...items];
-
-  /// Adds [item] to the list only if it does not already exist.
-  void addToSet(T item) {
-    if (!value.contains(item)) value = [...value, item];
+  /// The value to list
+  List<T> toList() {
+    return value.toList();
   }
-
-  /// Removes [item] from the list.
-  void remove(T item) {
-    value.remove(item);
-    notify();
-  }
-
-  /// Removes all elements that match [test].
-  void removeWhere(bool Function(T) test) =>
-      value = value.where((e) => !test(e)).toList();
-
-  /// Removes all occurrences of [item].
-  void removeAll(T item) => value = value.where((e) => e != item).toList();
-
-  /// Clears the list.
-  void clear() => value = [];
 
   /// Returns a filtered list containing elements that satisfy [test].
   List<T> where(bool Function(T) test) => value.where((e) => test(e)).toList();
@@ -47,12 +31,6 @@ extension ReactiveList<T> on Reactive<List<T>> {
       if (test(e)) return e;
     }
     return null;
-  }
-
-  /// Sort the list in place using the provided [compare] function.
-  void sort([int Function(T a, T b)? compare]) {
-    value.sort(compare);
-    notify();
   }
 
   /// Transforms the current reactive list into a new reactive list by applying
@@ -124,5 +102,61 @@ extension ReactiveList<T> on Reactive<List<T>> {
     });
 
     return r;
+  }
+
+  T operator [](int index) {
+    return value.elementAt(index);
+  }
+
+  /// Returns the element at
+  T at(int index) {
+    return value.elementAt(index);
+  }
+
+  T? atOrNull(int index) {
+    return value.elementAtOrNull(index);
+  }
+}
+
+extension ReactiveList<T> on Reactive<List<T>> {
+  /// Adds [item] to the end of the list.
+  void add(T item) => value = [...value, item];
+
+  /// Adds [item] to the end of the list.
+  void addFirst(T item) => value = [item, ...value];
+
+  /// Adds all items from [items] to the end of the list.
+  void addAll(Iterable<T> items) => value = [...value, ...items];
+
+  /// Adds [item] to the list only if it does not already exist.
+  void addToSet(T item) {
+    if (!value.contains(item)) value = [...value, item];
+  }
+
+  /// Removes [item] from the list.
+  void remove(T item) {
+    if (!value.contains(item)) return;
+
+    final list = toList();
+    list.remove(item);
+    value = list;
+  }
+
+  /// Removes all elements that match [test].
+  void removeWhere(bool Function(T) test) =>
+      value = value.where((e) => !test(e)).toList();
+
+  /// Removes all occurrences of [item].
+  void removeAll(T item) => value = value.where((e) => e != item).toList();
+
+  /// Clears the list.
+  void clear() => value = [];
+
+  /// Sort the list in place using the provided [compare] function.
+  void sort([int Function(T a, T b)? compare]) {
+    final list = value.toList();
+
+    list.sort(compare);
+    value = list;
   }
 }

@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+void dp(dynamic v) {
+  debugPrint(v.toString());
+}
+
 void main() {
   test('Validator', () {
     final counter = 0.reactive();
     counter.require((v) => v > 0).require((v) => v < 4, "Te");
 
     counter.listen((v) {
-      debugPrint("Counter: $v");
+      dp("Counter: $v");
     });
 
     counter.inc();
@@ -28,7 +32,7 @@ void main() {
   test('Nums changes', () {
     final counter = 0.reactive();
     counter.listen((v) {
-      debugPrint("Counter: $v");
+      dp("Counter: $v");
     });
     counter.increment(2);
     expect(counter.value, 2);
@@ -43,12 +47,12 @@ void main() {
   test("List changes", () {
     final list = Reactive(<int>[]);
     list.listen((v) {
-      debugPrint("List: $v");
+      dp("List: $v");
     });
 
     final evenList = list.transform(filter: (element) => element % 2 == 0);
     evenList.listen((v) {
-      debugPrint("Even List: $v");
+      dp("Even List: $v");
     });
     list.add(1);
     list.add(2);
@@ -100,7 +104,7 @@ void main() {
         "Counter cannot be negative",
       );
       counter.listen((v) {
-        debugPrint("Counter: $v");
+        dp("Counter: $v");
       });
 
       Reactive.run(
@@ -123,7 +127,7 @@ void main() {
         "Counter cannot be negative",
       );
       counter.listen((v) {
-        debugPrint("Counter: $v");
+        dp("Counter: $v");
       });
 
       Reactive.run(
@@ -147,7 +151,7 @@ void main() {
         "Counter cannot be negative",
       );
       counter.listen((v) {
-        debugPrint("Counter: $v");
+        dp("Counter: $v");
       });
 
       Reactive.run(
@@ -171,7 +175,7 @@ void main() {
         "Counter cannot be negative",
       );
       counter.listen((v) {
-        debugPrint("Counter: $v");
+        dp("Counter: $v");
       });
 
       final transaction = await Reactive.run(
@@ -195,13 +199,31 @@ void main() {
   test('When method', () {
     final counter = 0.reactive();
     counter.listen((v) {
-      debugPrint("Counter: $v");
+      dp("Counter: $v");
     });
 
     counter.when((v) => v == 0, (_) => print("Counter is zero"));
 
     counter.inc();
     counter.dec();
+  });
+
+  test('list', () {
+    final rList = [0, 2, 4, 3, 4, 5].reactive().require((l) => !l.contains(6));
+    rList.listen((list) {
+      dp('list : $list');
+    });
+
+    Reactive.run(() async {
+      dp(rList.at(0));
+      dp(rList.atOrNull(10));
+      rList.addFirst(1);
+      dp(rList[0]);
+      rList.add(6);
+      dp(rList.last);
+      rList.remove(2);
+      rList.removeAll(4);
+    });
   });
 }
 

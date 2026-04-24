@@ -3,6 +3,46 @@
 Goodbye repetitive setState() calls! Welcome to Flutter Reactive.
 No ChangeNotifier, no boilerplate — just Reactive values bound to States.
 
+![logo.svg](logo.svg)
+
+## Why Flutter Reactive ?
+
+Let's be honest… writing `setState()` everywhere in 2026 feels old and most Flutter state management solutions are either too verbose (👀 ChangeNotifier, Provider…), too abstract (Riverpod, Bloc…), or come with too much features (Getx...).
+
+**Flutter Reactive** takes a different approach:
+
+👉 **Keep things simple, direct, and predictable.**
+
+No unnecessary concepts, no boilerplate, no steep learning curve.
+Flutter Reactive has **_zero_** external dependencies — just a plain Dart object that propagates its own changes. No context, no codegen, no framework lock-in.
+
+## Comparison
+
+| Specifications                    | Flutter Reactive | GetX | Provider | Bloc |
+| --------------------------------- | ---------------- | ---- | -------- | ---- |
+| Minimal boilerplate ?             | ✅               | ✅   | ❌       | ❌   |
+| Easy to learn ?                   | ✅               | ✅   | ✅       | ❌   |
+| Built-in reactivity (no setup) ?  | ✅               | ❌   | ❌       | ❌   |
+| Automatic UI updates ?            | ✅               | ✅   | ❌       | ✅   |
+| No external dependency required ? | ✅               | ❌   | ❌       | ❌   |
+| Good for small apps ?             | ✅               | ✅   | ✅       | ❌   |
+| Good for large apps ?             | ✅               | ❌   | ✅       | ✅   |
+| Supports computed values easily ? | ✅               | ❌   | ❌       | ❌   |
+| Supports side effects cleanly ?   | ✅               | ❌   | ❌       | ❌   |
+| Transaction / rollback system ?   | ✅               | ❌   | ❌       | ❌   |
+| Stream-friendly ?                 | ✅               | ✅   | ❌       | ✅   |
+| No strict architecture required ? | ✅               | ✅   | ✅       | ❌   |
+| Full control over state changes ? | ✅               | ❌   | ❌       | ❌   |
+
+---
+
+### Summary
+
+- Flutter Reactive → simple, direct, no boilerplate, full control
+- GetX → powerful but sometimes "magic" and less predictable
+- Provider → simple but becomes verbose for complex reactivity
+- Bloc → very structured, but heavy for small/medium apps
+
 ## Features
 
 - Reactive variables (Reactive\<T>)
@@ -23,16 +63,32 @@ Import the package in your project:
 import 'package:flutter_reactive/flutter_reactive.dart';
 ```
 
+---
+
+> **Recommendation:** Prefix all reactive variable names with a lowercase `r` to make them instantly recognizable in your codebase.
+
+```dart
+// ✅ Recommended
+final rCounter = Reactive(0);
+final rUser = ReactiveN<UserModel>();
+final rItems = <String>[].reactive();
+
+// ❌ Possible but less clear — hard to tell at a glance which variables are reactive
+final counter = Reactive(0);
+final user = ReactiveN<UserModel>();
+final items = <String>[].reactive();
+```
+
 ## Basic Usage
 
 Create a reactive value:
 
 ```dart
-final counter = Reactive(0); // strict by default
-final user = ReactiveN<UserModel>(); // nullable
-final counterNotStrict = Reactive(0, false); // not strict, allows same value updates
-final counterByExt = 0.reactive(); // extension helper (strict by default)
-final counterByExtNotStrict = 0.reactive(false); // extension helper (not strict)
+final rCounter = Reactive(0); // strict by default
+final rUser = ReactiveN<UserModel>(); // nullable
+final rCounterNotStrict = Reactive(0, false); // not strict, allows same value updates
+final rCounterByExt = 0.reactive(); // extension helper (strict by default)
+final rCounterByExtNotStrict = 0.reactive(false); // extension helper (not strict)
 
 ```
 
@@ -40,60 +96,60 @@ or inside a State:
 
 ```dart
 class _MyState extends State<MyWidget> {
-    late final counter = react(0); // automatically binds to this State. Needs to be late.
-    late final user = reactN<UserModel>(); // nullable type
-    late final counterNotStrict = react(0, false); // not strict, allows same value updates
+    late final rCounter = react(0); // automatically binds to this State. Needs to be late.
+    late final rUser = reactN<UserModel>(); // nullable type
+    late final rCounterNotStrict = react(0, false); // not strict, allows same value updates
 }
 ```
 
 Read & write:
 
 ```dart
-counter.value;      // get
-counter.value = 1;  // set
-counter.set(2);     // explicit
+rCounter.value;      // get
+rCounter.value = 1;  // set
+rCounter.set(2);     // explicit
 
-counter.setAsync(getCounterFromDb()); // will update after
+rCounter.setAsync(getCounterFromDb()); // will update after
 
-user.set(UserModel(...)); // set nullable value
+rUser.set(UserModel(...)); // set nullable value
 
-counterNotStrict.value=1;
-counterNotStrict.value=1; //still notifies because not strict
+rCounterNotStrict.value=1;
+rCounterNotStrict.value=1; //still notifies because not strict
 
 ```
 
 Control which values can be used.
 
 ```dart
-counter
+rCounter
     .require((v) => v > 0) // any value <= 0 will be ignored
     .require((v) => v <= 10, "Counter should be under 10"); // any value over 10 throws an error
 
-counter.value = 4;
-counter.value = 0; // still 4
-counter.value = -5; // still 4
-counter.value = 10; // valid
-counter.value = 11; // throws a ReactiveValidatorError
+rCounter.value = 4;
+rCounter.value = 0; // still 4
+rCounter.value = -5; // still 4
+rCounter.value = 10; // valid
+rCounter.value = 11; // throws a ReactiveValidatorError
 
 // you can catch to check what happened
-counter.value = 10;
+rCounter.value = 10;
 try{
-  counter.increment(); // tries 11, throws
+  rCounter.increment(); // tries 11, throws
 } on ReactiveValidatorError catch(e) {
   print(e.message); // "Counter should be under 10"
   print(e.value); // 11 (value that failed validation)
 }
 
 // To ensure all validators are applied, it's recommended to use `require` when declaring the reactive.
-final name = Reactive("").require((n)=> n.trim() != ""); // initialValue does not count
+final rName = Reactive("").require((n)=> n.trim() != ""); // initialValue does not count
 
 ```
 
 Update based on current value:
 
 ```dart
-counter.update((v) => v + 1);
-user.mutate((u) => u?.name = 'New Name'); // update and notify
+rCounter.update((v) => v + 1);
+rUser.mutate((u) => u?.name = 'New Name'); // update and notify
 ```
 
 Difference between `set`, `update` and `mutate`:
@@ -110,52 +166,52 @@ Bind a Reactive to a State so the UI updates automatically.
 
 ```dart
 
-final counter = Reactive(0);// outside the State class
+final rCounter = Reactive(0);// outside the State class
 class _MyState extends State<MyWidget> {
 
     // or inside the State class
-    // final counter = Reactive(0);
+    // final rCounter = Reactive(0);
 
   @override
   void initState() {
     super.initState();
-    counter.bind(this);
+    rCounter.bind(this);
   }
 
   @override
   void dispose() {
-    counter.unbind(this); // not strictly necessary, but cleaner
+    rCounter.unbind(this); // not strictly necessary, but cleaner
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Text(counter.value.toString());
+    return Text(rCounter.value.toString());
   }
 }
 ```
 
-or using the react() helper:
+or using directly the react() method of the state:
 
 ```dart
 class _MyState extends State<MyWidget> {
-  late final counter = react(0); // automatically binds to this State. Needs to be late and inside the State class.
+  late final rCounter = react(0); // automatically binds to this State. Needs to be late and inside the State class.
 
   @override
   Widget build(BuildContext context) {
-    return Text(counter.value.toString());
+    return Text(rCounter.value.toString());
   }
 }
 ```
 
-When counter.value changes, setState() is triggered internally.
+When rCounter.value changes, setState() is triggered internally.
 
 ## Unbinding
 
 You can manually unbind a state:
 
 ```dart
-counter.unbind(this);
+rCounter.unbind(this);
 ```
 
 Note: Unmounted states are automatically cleaned up internally.
@@ -165,7 +221,7 @@ Note: Unmounted states are automatically cleaned up internally.
 Listen to value changes without binding to a State.
 
 ```dart
-counter.listen((value) {
+rCounter.listen((value) {
   print('Counter changed to $value');
 });
 ```
@@ -173,7 +229,7 @@ counter.listen((value) {
 Remove the listener:
 
 ```dart
-counter.unlisten(myCallback);
+rCounter.unlisten(myCallback);
 ```
 
 ## Conditional reaction with `when`
@@ -181,14 +237,14 @@ counter.unlisten(myCallback);
 Trigger a side effect only when a condition is true.
 
 ```dart
-final counter = 0.reactive();
+final rCounter = 0.reactive();
 
-counter.when((v) => v == 0, (_) {
+rCounter.when((v) => v == 0, (_) {
   print("Counter is zero");
 });
 
-counter.value = 1; // nothing
-counter.value = 0; // prints "Counter is zero"
+rCounter.value = 1; // nothing
+rCounter.value = 0; // prints "Counter is zero"
 ```
 
 ## Using Streams
@@ -196,20 +252,20 @@ counter.value = 0; // prints "Counter is zero"
 Reactive variables expose a broadcast stream:
 
 ```dart
-counter.stream.listen((value) {
+rCounter.stream.listen((value) {
     print("New value: $value");
 });
 
 // Difference between listen() and stream.listen():
-counter.listen((value) {
+rCounter.listen((value) {
     print("Listener: $value");
 });
 
-counter.value++;
+rCounter.value++;
 // triggers both stream listener and listen() callback but stream can be used inside a StreamBuilder
 
 StreamBuilder<int>(
-    stream: counter.stream,
+    stream: rCounter.stream,
     builder: (context, snapshot) {
         return Text('Counter: ${snapshot.data}');
     },
@@ -221,8 +277,8 @@ StreamBuilder<int>(
 You can debounce updates to avoid too many notifications in a short time.Also useful for search inputs and forms.
 
 ```dart
-final counter = Reactive(0);
-counter.debounce(Duration(seconds: 3).inMilliseconds, (value) {
+final rCounter = Reactive(0);
+rCounter.debounce(Duration(seconds: 3).inMilliseconds, (value) {
   print("Counter $value");
 });
 ```
@@ -230,7 +286,7 @@ counter.debounce(Duration(seconds: 3).inMilliseconds, (value) {
 Similar to debounce, but in throttle way.
 
 ```dart
-counter.throttle(3000, (value) {
+rCounter.throttle(3000, (value) {
   print("Counter $value");
 });
 ```
@@ -240,33 +296,33 @@ counter.throttle(3000, (value) {
 You can combine multiple Reactive\<T> into one Reactive\<R>.
 
 ```dart
-final a = Reactive(1);
-final b = Reactive(2);
-final sum = Reactive.combine([a, b], (values) => values[0] + values[1]);
-// or sum = Reactive.combine2(a, b, (aVal, bVal) => aVal + bVal);
-sum.listen((value) {
+final rA = Reactive(1);
+final rB = Reactive(2);
+final rSum = Reactive.combine([rA, rB], (values) => values[0] + values[1]);
+// or rSum = Reactive.combine2(rA, rB, (aVal, bVal) => aVal + bVal);
+rSum.listen((value) {
     print('Sum changed to $value');
 });
-a.value = 3; // sum updates to 5
-b.value = 4; // sum updates to 7
+rA.value = 3; // rSum updates to 5
+rB.value = 4; // rSum updates to 7
 
-final active=true.reactive();
-final count=0.reactive();
-final message=''.reactive();
-final status = Reactive.combine3(
-    active, count, message,
+final rActive = true.reactive();
+final rCount = 0.reactive();
+final rMessage = ''.reactive();
+final rStatus = Reactive.combine3(
+    rActive, rCount, rMessage,
     (isActive, cnt, msg) {
         return 'Status: ${isActive ? "Active" : "Inactive"}, Count: $cnt, Message: $msg';
     },
 );
-status.listen((value) {
+rStatus.listen((value) {
     print(value);
 });
 
-active.disable(); // prints: Status: Inactive, Count: 0, Message:
-count.value = 10; // prints: Status: Inactive, Count: 10, Message:
-message.value = 'Hello'; // prints: Status: Inactive, Count: 10, Message: Hello
-active.toggle(); // prints: Status: Active, Count: 10, Message: Hello
+rActive.disable(); // prints: Status: Inactive, Count: 0, Message:
+rCount.value = 10; // prints: Status: Inactive, Count: 10, Message:
+rMessage.value = 'Hello'; // prints: Status: Inactive, Count: 10, Message: Hello
+rActive.toggle(); // prints: Status: Active, Count: 10, Message: Hello
 ```
 
 There are combine methods for up to 5 Reactives (combine2, combine3, combine4, combine5).\
@@ -275,11 +331,11 @@ For more, use combine() with a list.
 If no combination function is required, use `Reactive.computed()`:
 
 ```dart
-final a = Reactive(1);
-final b = Reactive(2);
-final isVisible = Reactive(true);
-final combined = Reactive.computed([a, b, isVisible]); // no function needed, just tracks changes
-combined.listen((values) {
+final rA = Reactive(1);
+final rB = Reactive(2);
+final rIsVisible = Reactive(true);
+final rCombined = Reactive.computed([rA, rB, rIsVisible]); // no function needed, just tracks changes
+rCombined.listen((values) {
     print('Values changed: $values');
 });
 ```
@@ -289,8 +345,8 @@ combined.listen((values) {
 You can create a reactive that depends on another one. Similar to `combine` or `compute` but for one value.
 
 ```dart
-final text = Reactive("");
-final length = text.as((t)=>t.length); // changes when text change
+final rText = Reactive("");
+final rLength = rText.as((t)=>t.length); // changes when rText changes
 
 ```
 
@@ -299,57 +355,57 @@ final length = text.as((t)=>t.length); // changes when text change
 Use transactions to batch updates and optionally rollback on error.
 
 ```dart
-final counter = 0.reactive().require(
+final rCounter = 0.reactive().require(
   (v) => v >= 0,
   "Counter cannot be negative",
 );
 
 Reactive.run(() {
-  counter.inc(5);
-  counter.dec(2);
+  rCounter.inc(5);
+  rCounter.dec(2);
 });
 
-print(counter.value); // 3
+print(rCounter.value); // 3
 ```
 
 Rollback is enabled by default:
 
 ```dart
-final counter = 0.reactive().require(
+final rCounter = 0.reactive().require(
   (v) => v >= 0,
   "Counter cannot be negative",
 );
 
 Reactive.run(
   () {
-    counter.inc(5);
-    counter.dec(10); // throws, full transaction is rolled back
+    rCounter.inc(5);
+    rCounter.dec(10); // throws, full transaction is rolled back
   },
   onError: (error) => print(error),
 );
 
-print(counter.value); // 0
+print(rCounter.value); // 0
 ```
 
 Manual rollback is also possible:
 
 ```dart
-final counter = 0.reactive().require(
+final rCounter = 0.reactive().require(
   (v) => v >= 0,
   "Counter cannot be negative",
 );
 
 final transaction = await Reactive.run(
   () {
-    counter.inc(5);
-    counter.dec(2);
+    rCounter.inc(5);
+    rCounter.dec(2);
   },
   rollbackOnError: false, // ensure no rollback on error, we will do it manually
 );
 
-print(counter.value); // 3
+print(rCounter.value); // 3
 transaction.rollback();
-print(counter.value); // 0
+print(rCounter.value); // 0
 ```
 
 ## Dispose the Reactive
@@ -357,7 +413,7 @@ print(counter.value); // 0
 If you want to clean up all bindings and listeners:
 
 ```dart
-counter.dispose();
+rCounter.dispose();
 ```
 
 This will unbind all States, remove all listeners and close the stream.
@@ -388,16 +444,16 @@ This package exposes extensions on:
 Example:
 
 ```dart
-final isVisible = true.reactive();
-final count = 0.reactive();
-final items = <String>[].reactive();
+final rIsVisible = true.reactive();
+final rCount = 0.reactive();
+final rItems = <String>[].reactive();
 
-isVisible.toggle(); // flips the boolean
-count.increment(); // adds 1
-count.decrement(); // subtracts 1
-items.addToSet('item'); // adds if not present
-items.remove('item'); // removes if present
-items.sort(); // sorts and notifies listeners
+rIsVisible.toggle(); // flips the boolean
+rCount.increment(); // adds 1
+rCount.decrement(); // subtracts 1
+rItems.addToSet('item'); // adds if not present
+rItems.remove('item'); // removes if present
+rItems.sort(); // sorts and notifies listeners
 ```
 
 ## Reactive API
@@ -458,19 +514,19 @@ Widgets:
 - `ReactiveStateBuilder`
 
 ```dart
-final counter= 0.reactive();
+final rCounter = 0.reactive();
 ReactiveBuilder(
-    reactive: counter,
+    reactive: rCounter,
     builder: (value) => Text('Counter: $value'),
 );
-counter.build((value) => Text('Counter: $value'));
+rCounter.build((value) => Text('Counter: $value'));
 ```
 
 - `ReactiveStreamBuilder<T>`
 
 ```dart
 ReactiveStreamBuilder(
-    reactive: counter,
+    reactive: rCounter,
     builder: (context, snapshot) {
       if(!snapshot.hasData) {
         return CircularProgressIndicator();
@@ -496,19 +552,19 @@ ReactiveStreamBuilder(
 - Avoid in-place mutations without notify():
 
 ```dart
-final user = ReactiveN<UserModel>();
-user.value = user.value.copyWith(name: "Max") // correct
-user.mutate((u) { u?.name = "Max"; }) // correct
+final rUser = ReactiveN<UserModel>();
+rUser.value = rUser.value.copyWith(name: "Max") // correct
+rUser.mutate((u) { u?.name = "Max"; }) // correct
 
-user.value.name = "Max" // incorrect, change is done but needs manually notify()
-user.update((u) { u?.name = "Max"; return u; }) // incorrect, change is done but will not notify cause same instance and isStrict = true
+rUser.value.name = "Max" // incorrect, change is done but needs manually notify()
+rUser.update((u) { u?.name = "Max"; return u; }) // incorrect, change is done but will not notify cause same instance and isStrict = true
 ```
 
 - Use isStrict = false if you want to allow same value updates:
 
 ```dart
-final user= ReactiveN<UserModel>(null, false); // not strict
-user.update((u) {
+final rUser = ReactiveN<UserModel>(null, false); // not strict
+rUser.update((u) {
     u?.name = "Max";
     return u; // will notify even if same instance
 });
@@ -517,12 +573,12 @@ user.update((u) {
 - Use `debounce()` for search inputs or frequent updates:
 
 ```dart
-final searchQuery = ''.reactive();
+final rSearchQuery = ''.reactive();
 
-searchQuery.listen((value) {
+rSearchQuery.listen((value) {
   search(value);  // ❌ Bad practice: this will trigger on every keystroke
 });
-searchQuery.debounce(500, (value) {
+rSearchQuery.debounce(500, (value) {
   search(value);  // ✅ Good practice: this will trigger only after 500ms of inactivity
 });
 ```
@@ -530,22 +586,22 @@ searchQuery.debounce(500, (value) {
 - Use `combine()` or `computed()` to track multiple Reactives:
 
 ```dart
-final a = Reactive(1);
-final b = Reactive(2);
+final rA = Reactive(1);
+final rB = Reactive(2);
 
 // ❌ BAD
-final sum = Reactive(0);
-a.listen((aVal) {
-    sum.value = aVal + b.value;
+final rSum = Reactive(0);
+rA.listen((aVal) {
+    rSum.value = aVal + rB.value;
 });
-b.listen((bVal) {
-    sum.value = a.value + bVal;
+rB.listen((bVal) {
+    rSum.value = rA.value + bVal;
 });
 
 // ✅ GOOD
-final sum = Reactive.combine2(a, b, (aVal, bVal) => aVal + bVal);
-//or int get sum => a.value + b.value;
-final combined = Reactive.computed([a, b], ()=> a.value + b.value);
+final rSum = Reactive.combine2(rA, rB, (aVal, bVal) => aVal + bVal);
+//or int get sum => rA.value + rB.value;
+final rCombined = Reactive.computed([rA, rB], ()=> rA.value + rB.value);
 ```
 
 - Don't manually change combined or computed Reactives:
@@ -553,10 +609,10 @@ final combined = Reactive.computed([a, b], ()=> a.value + b.value);
 Combined or computed Reactives should not be set manually as they derive their value from other Reactives. Because it is possible do not mean to do it, avoid it to prevent confusion and unpredictable behavior.
 
 ```dart
-final a = Reactive(1);
-final b = Reactive(2);
-final sum = Reactive.combine2(a, b, (aVal, bVal) => aVal + bVal);
-sum.value = 10; // ❌ BAD: sum is computed, don't set it manually
+final rA = Reactive(1);
+final rB = Reactive(2);
+final rSum = Reactive.combine2(rA, rB, (aVal, bVal) => aVal + bVal);
+rSum.value = 10; // ❌ BAD: rSum is computed, don't set it manually
 ```
 
 - Limit excessive rebuilds:
@@ -571,24 +627,24 @@ class CounterWidget extends StatefulWidget {
   _CounterWidgetState createState() => _CounterWidgetState();
 }
 class _CounterWidgetState extends State<CounterWidget> {
-  late final counter = react(0); // binds to this State
-  late final counterNotBound = Reactive(0); // can be outside the State class
+  late final rCounter = react(0); // binds to this State
+  late final rCounterNotBound = Reactive(0); // can be outside the State class
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text('Counter: $counter'), //the state rebuilds on counter change
+        Text('Counter: $rCounter'), //the state rebuilds on rCounter change
         ReactiveBuilder(
-          reactive: counterNotBound, // only this widget rebuilds on counterNotBound change
+          reactive: rCounterNotBound, // only this widget rebuilds on rCounterNotBound change
           builder: (value) => Text('Counter: $value'),
         ),
         ElevatedButton(
-          onPressed: () => counter.increment(), // excessive rebuilds
+          onPressed: () => rCounter.increment(), // excessive rebuilds
           child: Text('Increment'),
         ),
         ElevatedButton(
-          onPressed: () => counterNotBound.increment(), // only rebuilds ReactiveBuilder
+          onPressed: () => rCounterNotBound.increment(), // only rebuilds ReactiveBuilder
           child: Text('Increment Not Bound'),
         ),
       ],
@@ -605,16 +661,16 @@ For larger applications, consider separating your state management from your UI 
 // lib/services/auth_service.dart
 import 'package:flutter_reactive/flutter_reactive.dart';
 class AuthService {
-  static final user = ReactiveN<UserModel>(); // static so can be used globally if needed
+  static final rUser = ReactiveN<UserModel>(); // static so can be used globally if needed
 
-  static bool get isLoggedIn => user.value != null;
+  static bool get isLoggedIn => rUser.value != null;
 
   static void login(UserModel newUser) {
-    user.value = newUser;
+    rUser.value = newUser;
   }
 
   static void logout() {
-    user.value = null;
+    rUser.value = null;
   }
 }
 ```
@@ -623,27 +679,27 @@ class AuthService {
 // lib/stores/form_store.dart
 import 'package:flutter_reactive/flutter_reactive.dart';
 class FormStore {
-  final username = ''.reactive(); // or Reactive("");
-  final password = ''.reactive();
+  final rUsername = ''.reactive(); // or Reactive("");
+  final rPassword = ''.reactive();
 
-  final isValid = Reactive.combine2(
-    username,
-    password,
+  final rIsValid = Reactive.combine2(
+    rUsername,
+    rPassword,
     (u, p) => u.isNotEmpty && p.isNotEmpty && p.length >= 6,
   );
 
 
   void updateUsername(String value) {
-    username.value = value;
+    rUsername.value = value;
   }
 
   void updatePassword(String value) {
-    password.value = value;
+    rPassword.value = value;
   }
 
   Future<void> save() async {
-    if(isValid.isTrue){
-      final json = await db.login(username.value, password.value);
+    if(rIsValid.isTrue){
+      final json = await db.login(rUsername.value, rPassword.value);
       AuthService.login(UserModel.fromJson(json)); // save user globally
     }
   }
@@ -660,7 +716,7 @@ class LoginForm extends StatelessWidget {
   final FormStore store = FormStore();
 
   void initState() {
-    AuthService.user.bind(this); // bind to AuthService user to update UI on login/logout
+    AuthService.rUser.bind(this); // bind to AuthService rUser to update UI on login/logout
   }
 
   @override
@@ -668,7 +724,7 @@ class LoginForm extends StatelessWidget {
     return AuthService.isLoggedIn
       ? Column(
           children: [
-            Text('Welcome, ${AuthService.user.value?.name}!'),
+            Text('Welcome, ${AuthService.rUser.value?.name}!'),
             ElevatedButton(
               onPressed: () => AuthService.logout(),
               child: Text('Logout'),
@@ -687,7 +743,7 @@ class LoginForm extends StatelessWidget {
           obscureText: true,
         ),
         ReactiveBuilder(
-          reactive: store.isValid,
+          reactive: store.rIsValid,
           builder: (isValid) {
             return ElevatedButton(
               onPressed: isValid ? store.save : null,
@@ -706,4 +762,4 @@ In this example, the `AuthService` manages the global user state, while the `For
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-Do whatever you want but don't blame the code ;).
+Do whatever you want but don't blame the me ;).

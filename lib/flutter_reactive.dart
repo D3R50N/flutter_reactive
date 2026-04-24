@@ -9,7 +9,7 @@ import 'package:flutter_reactive/widgets/reactive_builder.dart';
 
 export 'extensions/all.dart';
 export 'extensions/bool.dart';
-export 'extensions/list.dart';
+export 'extensions/iterable.dart';
 export 'extensions/map.dart';
 export 'extensions/num.dart';
 export 'extensions/state.dart';
