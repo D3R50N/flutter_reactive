@@ -62,11 +62,26 @@ class Reactive<T> {
 
   final Map<String, T> _savedStates = {};
 
-  /// Stream controller
-  final _controller = StreamController<T>.broadcast();
+  final List<Reactive> _computedReactives = [];
+
+  static Reactive? _currentComputing;
+
+  bool _readOnly = false;
+
+  final
+      /// Stream controller
+      _controller =
+      StreamController<T>.broadcast();
 
   /// Current value of the reactive.
-  T get value => _value;
+  T get value {
+    if (_currentComputing != null) {
+      if (!_currentComputing!._computedReactives.contains(this)) {
+        _currentComputing!._computedReactives.add(this);
+      }
+    }
+    return _value;
+  }
 
   /// Expose a broadcast stream of value changes.
   Stream<T> get stream => _controller.stream;
@@ -75,22 +90,29 @@ class Reactive<T> {
   set value(T newValue) => set(newValue);
 
   bool _equals(T newValue) {
-    if (value == newValue) return true;
-    if (newValue is List) return listEquals(value as List, newValue as List);
+    if (_value == newValue) return true;
+    if (newValue is List) return listEquals(_value as List, newValue as List);
     return false;
   }
 
   /// Sets a new value.
   ///
+  /// If the reactive is read-only, it will throw an error
   /// If the value did not change, nothing happens.
   /// If the value is rejected by any validator, it is not updated and no notification occurs.
   /// If the value is updated, all bound states are rebuilt and listeners are notified.
   /// If the value is updated within a transaction, notifications are deferred until the transaction is committed.
   void set(T newValue) {
+    if (_readOnly) throw Exception('Cannot modify a read-only Reactive');
+    _set(newValue);
+  }
+
+  void _set(T newValue) {
     for (final v in _validators) {
       final valid = v.run(newValue);
       if (!valid) return;
     }
+
     if (_equals(newValue) && strict) return;
     if (ReactiveTransactionManager._inTransaction) {
       ReactiveTransactionManager._register(this);
@@ -222,6 +244,7 @@ class Reactive<T> {
     _listeners.clear();
     _boundStates.clear();
     _controller.close();
+    // should clean computed ?
   }
 
   /// Removes a previously registered listener.
@@ -251,7 +274,7 @@ class Reactive<T> {
   /// Combines multiple Reactive values (can be of different types) into a single Reactive.
   ///
   /// [dependencies] is the list of Reactive values to listen to.
-  /// [combiner] receives a list of current values and returns a new value of type R.
+  /// [combiner] receives a list of current values in the same order you pass them and returns a new value of type R.
   static Reactive<R> combine<R>(
     List<Reactive<dynamic>> dependencies,
     R Function(List<dynamic> values) combiner,
@@ -260,10 +283,11 @@ class Reactive<T> {
     final combined = Reactive<R>(
       combiner(dependencies.map((r) => r.value).toList()),
     );
+    combined._readOnly = true;
 
     // Callback to update combined whenever a source changes
     void update(_) {
-      combined.value = combiner(dependencies.map((r) => r.value).toList());
+      combined._set(combiner(dependencies.map((r) => r.value).toList()));
     }
 
     // Listen to all dependencies
@@ -275,21 +299,25 @@ class Reactive<T> {
   }
 
   /// Same as combine but the combination function is not required
-  static ReactiveN<R> computed<R>(
-    List<Reactive<dynamic>> dependencies, [
-    R Function()? combiner,
-  ]) {
-    final combined = ReactiveN<R>(combiner?.call());
+  static Reactive<R> compute<R>(R Function() fn) {
+    final tempComputed = ReactiveN<R>();
+    _currentComputing = tempComputed;
+    final value = fn();
+    _currentComputing = null;
+
+    final computed = Reactive<R>(value);
+    computed._readOnly = true;
+    computed._computedReactives.addAll(tempComputed._computedReactives);
 
     void update(_) {
-      combined.value = combiner?.call();
+      computed._set(fn());
     }
 
-    for (final dep in dependencies) {
+    for (final dep in computed._computedReactives) {
       dep.listen(update);
     }
 
-    return combined;
+    return computed;
   }
 
   /// Combines two reactive values into a new [Reactive].

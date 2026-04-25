@@ -29,6 +29,14 @@ extension ReactiveString on Reactive<String> {
   /// Converts the string to lowercase.
   void toLower() => value = value.toLowerCase();
 
+  String get upper => value.toUpperCase();
+  String get lower => value.toLowerCase();
+
+  /// Returns the trimmed value
+  String get trimmed => value.trim();
+
+  String operator +(dynamic s) => value + s.toString();
+
   /// Checks if the string contains [other].
   ///
   /// [caseSensitive] determines whether the search is case-sensitive (default: true).

@@ -3,7 +3,9 @@
 ## 0.1.1
 
 - Changed `list.dart` to `iterable.dart`
-- Added new methods to iterable reactives
+- Added new methods to iterable, map and string reactives
+- Renamed `computed` to `compute` and changed how it works
+- Deleted `combine` method
 
 ## 0.1.0
 
