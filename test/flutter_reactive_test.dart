@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-void dp(dynamic v) {
+void dp([dynamic v = '']) {
   debugPrint(v.toString());
 }
 
@@ -208,13 +208,15 @@ void main() {
     counter.dec();
   });
 
-  test('list', () {
+  test('list', () async {
     final rList = [0, 2, 4, 3, 4, 5].reactive().require((l) => !l.contains(6));
     rList.listen((list) {
       dp('list : $list');
     });
 
-    Reactive.run(() async {
+    rList[5] = 8;
+
+    final transaction = await Reactive.run(() async {
       dp(rList.at(0));
       dp(rList.atOrNull(10));
       rList.addFirst(1);
@@ -223,7 +225,12 @@ void main() {
       dp(rList.last);
       rList.remove(2);
       rList.removeAll(4);
+      rList.forEach((i) {
+        dp('$i ${i * 2}');
+      });
     });
+
+    transaction.rollback();
   });
 }
 

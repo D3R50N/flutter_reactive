@@ -22,6 +22,10 @@ extension ReactiveIterable<T> on Reactive<Iterable<T>> {
     return value.toList();
   }
 
+  void forEach(void Function(T e) action) {
+    value.forEach(action);
+  }
+
   /// Returns a filtered list containing elements that satisfy [test].
   List<T> where(bool Function(T) test) => value.where((e) => test(e)).toList();
 
@@ -158,5 +162,14 @@ extension ReactiveList<T> on Reactive<List<T>> {
 
     list.sort(compare);
     value = list;
+  }
+
+  T operator [](int index) {
+    return value[index];
+  }
+
+  void operator []=(int i, T v) {
+    value[i] = v;
+    notify();
   }
 }

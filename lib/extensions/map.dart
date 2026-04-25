@@ -34,4 +34,25 @@ extension ReactiveMap<K, V> on Reactive<Map<K, V>> {
 
   /// Clears all entries in the reactive map.
   void clear() => value = {};
+
+  V? operator [](K k) {
+    return value[k];
+  }
+
+  void operator []=(K k, V v) {
+    value[k] = v;
+    notify();
+  }
+
+  void forEach(void Function(K k, V v) action) {
+    value.forEach(action);
+  }
+
+  V? get(K k) {
+    return value[k];
+  }
+
+  Iterable<K> get keys => value.keys;
+  Iterable<V> get values => value.values;
+  Iterable<MapEntry<K, V>> get entries => value.entries;
 }

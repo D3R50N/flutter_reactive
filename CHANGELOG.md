@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Changed `list.dart` to `iterable.dart`
+- Added new methods to iterable reactives
+
 ## 0.1.0
 
 - Added transaction support with `Reactive.run(...)`

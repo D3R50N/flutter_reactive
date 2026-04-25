@@ -232,6 +232,60 @@ Remove the listener:
 rCounter.unlisten(myCallback);
 ```
 
+## Saving and Restoring values
+
+- A reactive can be saved and be restored later.
+
+```dart
+final rLoading = false.reactive();
+
+rLoading.save(); // keep `false` value
+rLoading.value = true; // or rLoading.enable();
+// ..some actions
+rLoading.restore(); // back to `false`
+```
+
+- The value can also be saved with a specific save id and be restored later with the same id. The default id is `'default'`.
+
+```dart
+final rName = ''.reactive();
+
+rName.value = 'Andy';
+rName.save('save1'); // save1 -> Andy
+
+
+rName.value = 'Max';
+rName.save('save2'); // save2 -> Max
+
+rName.restore('save1'); // value is now Andy
+rName.restore('save2'); // value is now Max
+
+// Overwrite a saved value
+rName.value = 'Hello world';
+rName.save('save2'); // save2 -> Hello world
+```
+
+- Overwrite a saved value
+
+```dart
+// ... same rName as before
+rName.value = 'Hello world';
+rName.save('save2'); // save2 -> Hello world
+```
+
+- Erase a saved value
+
+```dart
+// ... same rName as before
+rName.unsave('save1'); // save1 erased
+rName.unsave('save2'); // save2 erased
+
+// Or just erase all of them
+rName.unsaveAll(); // default, save1 and save2 erased
+
+rName.restore('save1'); // no effect cause no saved value
+```
+
 ## Conditional reaction with `when`
 
 Trigger a side effect only when a condition is true.
