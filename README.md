@@ -10,8 +10,7 @@ No ChangeNotifier, no boilerplate — just Reactive values bound to States.
 Let's be honest… writing `setState()` everywhere in 2026 feels old and most Flutter state management solutions are either too verbose (👀 ChangeNotifier, Provider…), too abstract (Riverpod, Bloc…), or come with too much features (Getx...).
 
 **Flutter Reactive** takes a different approach:
-
-👉 **Keep things simple, direct, and predictable.**
+**Keep things simple, direct, and predictable.**
 
 No unnecessary concepts, no boilerplate, no steep learning curve.
 Flutter Reactive has **_zero_** external dependencies — just a plain Dart object that propagates its own changes. No context, no codegen, no framework lock-in.
