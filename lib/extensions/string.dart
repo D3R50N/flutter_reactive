@@ -35,8 +35,6 @@ extension ReactiveString on Reactive<String> {
   /// Returns the trimmed value
   String get trimmed => value.trim();
 
-  String operator +(dynamic s) => value + s.toString();
-
   /// Checks if the string contains [other].
   ///
   /// [caseSensitive] determines whether the search is case-sensitive (default: true).
@@ -51,4 +49,41 @@ extension ReactiveString on Reactive<String> {
     final t = caseSensitive ? other : other.toLowerCase();
     return v.contains(t);
   }
+
+  /// Returns true if the string starts with [other].
+  bool startsWith(Object other, {bool caseSensitive = true}) {
+    final v = caseSensitive ? value : value.toLowerCase();
+    final t = caseSensitive ? _resolve(other) : _resolve(other).toLowerCase();
+    return v.startsWith(t);
+  }
+
+  /// Returns true if the string ends with [other].
+  bool endsWith(Object other, {bool caseSensitive = true}) {
+    final v = caseSensitive ? value : value.toLowerCase();
+    final t = caseSensitive ? _resolve(other) : _resolve(other).toLowerCase();
+    return v.endsWith(t);
+  }
+
+  String _resolve(Object other) =>
+      other is Reactive<String> ? other.value : other.toString();
+
+  /// Concatenates this value with [other] and returns a new [String].
+  ///
+  /// ```dart
+  /// rFirst + rLast   // String
+  /// rFirst + ' world' // String
+  /// ```
+  String operator +(Object other) => value + _resolve(other);
+
+  /// Returns true if this value is less than [other] (lexicographic order).
+  bool operator <(Object other) => value.compareTo(_resolve(other)) < 0;
+
+  /// Returns true if this value is less than or equal to [other].
+  bool operator <=(Object other) => value.compareTo(_resolve(other)) <= 0;
+
+  /// Returns true if this value is greater than [other].
+  bool operator >(Object other) => value.compareTo(_resolve(other)) > 0;
+
+  /// Returns true if this value is greater than or equal to [other].
+  bool operator >=(Object other) => value.compareTo(_resolve(other)) >= 0;
 }

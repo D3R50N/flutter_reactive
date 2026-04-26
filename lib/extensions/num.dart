@@ -57,4 +57,36 @@ extension ReactiveNum on Reactive<num> {
     final factor = math.pow(10, digits);
     value = (value * factor).round() / factor;
   }
+
+  num _resolve(Object other) =>
+      other is Reactive<num> ? other.value : other as num;
+
+  num operator +(Object other) => value + _resolve(other);
+  num operator -(Object other) => value - _resolve(other);
+  num operator *(Object other) => value * _resolve(other);
+
+  double operator /(Object other) {
+    final rhs = _resolve(other);
+    if (rhs == 0) throw UnsupportedError('Division by zero');
+    return value / rhs;
+  }
+
+  int operator ~/(Object other) {
+    final rhs = _resolve(other);
+    if (rhs == 0) throw UnsupportedError('Integer division by zero');
+    return value ~/ rhs;
+  }
+
+  num operator %(Object other) {
+    final rhs = _resolve(other);
+    if (rhs == 0) throw UnsupportedError('Modulo by zero');
+    return value % rhs;
+  }
+
+  num operator -() => -value;
+
+  bool operator <(Object other) => value < _resolve(other);
+  bool operator <=(Object other) => value <= _resolve(other);
+  bool operator >(Object other) => value > _resolve(other);
+  bool operator >=(Object other) => value >= _resolve(other);
 }

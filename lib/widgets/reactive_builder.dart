@@ -19,6 +19,12 @@ class ReactiveBuilder<T> extends StatefulWidget {
 
   @override
   State<ReactiveBuilder<T>> createState() => _ReactiveBuilderState<T>();
+
+  /// Automatically build a widget based a computed values
+  static ReactiveBuilder<Widget> compute(Widget Function() builder) {
+    final r = Reactive.compute(builder);
+    return ReactiveBuilder(reactive: r, builder: (w) => w);
+  }
 }
 
 class _ReactiveBuilderState<T> extends State<ReactiveBuilder<T>> {

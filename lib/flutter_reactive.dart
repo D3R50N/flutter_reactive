@@ -16,7 +16,6 @@ export 'extensions/state.dart';
 export 'extensions/string.dart';
 export 'widgets/reactive_builder.dart';
 export 'widgets/state_builder.dart';
-export 'widgets/stream_builder.dart';
 
 part 'core/transaction.dart';
 part 'core/transaction_manager.dart';
@@ -275,7 +274,7 @@ class Reactive<T> {
   ///
   /// [dependencies] is the list of Reactive values to listen to.
   /// [combiner] receives a list of current values in the same order you pass them and returns a new value of type R.
-  static Reactive<R> _combine<R>(
+  static Reactive<R> combine<R>(
     List<Reactive<dynamic>> dependencies,
     R Function(List<dynamic> values) combiner,
   ) {
@@ -298,7 +297,7 @@ class Reactive<T> {
     return combined;
   }
 
-  /// Same as _combine but the combination function is not required
+  /// Same as combine but the combination function is not required
   static Reactive<R> compute<R>(R Function() fn) {
     final tempComputed = ReactiveN<R>();
     _currentComputing = tempComputed;
@@ -342,7 +341,7 @@ class Reactive<T> {
     Reactive<B> b,
     R Function(A a, B b) combiner,
   ) {
-    return Reactive._combine([a, b], (l) => combiner(l[0] as A, l[1] as B));
+    return Reactive.combine([a, b], (l) => combiner(l[0] as A, l[1] as B));
   }
 
   /// Combines three reactive values into a new [Reactive].
@@ -375,7 +374,7 @@ class Reactive<T> {
     Reactive<C> c,
     R Function(A a, B b, C c) combiner,
   ) {
-    return Reactive._combine([
+    return Reactive.combine([
       a,
       b,
       c,
@@ -390,7 +389,7 @@ class Reactive<T> {
     Reactive<D> d,
     R Function(A a, B b, C c, D d) combiner,
   ) {
-    return Reactive._combine([
+    return Reactive.combine([
       a,
       b,
       c,
@@ -407,7 +406,7 @@ class Reactive<T> {
     Reactive<E> e,
     R Function(A a, B b, C c, D d, E e) combiner,
   ) {
-    return Reactive._combine([
+    return Reactive.combine([
       a,
       b,
       c,
@@ -425,9 +424,10 @@ class Reactive<T> {
   /// ```
   Reactive<R> as<R>(R Function(T v) parser) {
     final r = Reactive(parser(value), strict);
+    r._readOnly = true;
 
     listen((v) {
-      r.value = parser(v);
+      r._set(parser(v));
     });
 
     return r;
@@ -482,6 +482,6 @@ class Reactive<T> {
   /// Returns the string representation of the current value.
   @override
   String toString() {
-    return _value.toString();
+    return value.toString();
   }
 }

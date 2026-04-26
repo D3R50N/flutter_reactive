@@ -5,7 +5,9 @@
 - Changed `list.dart` to `iterable.dart`
 - Added new methods to iterable, map and string reactives
 - Renamed `computed` to `compute` and changed how it works
-- Deleted `combine` method
+- `compute`, `as`, `combine2`, and 3, 4 and 5 are now read-only
+- Added new methods and operators to Reactives num and string
+- Remove `ReactiveStreamBuilder` widget cause it was not relevant
 
 ## 0.1.0
 

@@ -20,7 +20,7 @@ class StreamShowcasePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ReactiveStreamBuilder Live View')),
+      appBar: AppBar(title: const Text('StreamBuilder Live View')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -34,8 +34,8 @@ class StreamShowcasePage extends StatelessWidget {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: ReactiveStreamBuilder<String>(
-                  reactive: status,
+                child: StreamBuilder<String>(
+                  stream: status.stream,
                   builder:
                       (context, snapshot) => Text(
                         snapshot.data ?? '',
@@ -48,8 +48,8 @@ class StreamShowcasePage extends StatelessWidget {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: ReactiveStreamBuilder<int>(
-                  reactive: transactionCounter,
+                child: StreamBuilder<int>(
+                  stream: transactionCounter.stream,
                   builder:
                       (context, snapshot) => Text(
                         'txCounter stream value: ${snapshot.data}',
@@ -148,8 +148,8 @@ class StreamShowcasePage extends StatelessWidget {
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
-                  child: ReactiveStreamBuilder<List<String>>(
-                    reactive: activityLog,
+                  child: StreamBuilder<List<String>>(
+                    stream: activityLog.stream,
                     builder: (context, snapshot) {
                       final items = snapshot.data ?? const <String>[];
                       if (items.isEmpty) {

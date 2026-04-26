@@ -284,6 +284,22 @@ class _ShowcasePageState extends State<ShowcasePage> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
+                child: ReactiveBuilder.compute(
+                  () => Row(
+                    children: [
+                      ReactiveBuilder.compute(() {
+                        return Text(txCounter.toString());
+                      }),
+                      Text(numbers.toString()),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
                 child: ReactiveBuilder<String>(
                   reactive: status,
                   builder: (value) => Text(value),

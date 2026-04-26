@@ -11,15 +11,12 @@ void main() {
   test("Computed reactives", () {
     final r1 = 0.reactive();
     final r2 = 0.2.reactive();
-    final rC = Reactive.compute(() => r1.value + r2.value);
-    final rC2 = Reactive.combine2(r1, r2, (v1, v2) => v1 - v2);
+    final rC = Reactive.compute(
+      () => Reactive.compute(() => 0).value + r1.value + r2.value,
+    );
 
     rC.listen((c) {
       dp(c);
-    });
-
-    rC2.listen((c) {
-      dp('c2 $c');
     });
 
     r1.increment();
