@@ -1,33 +1,37 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
-Reactive<String>? _nameReactive;
+import 'models/order_ticket.dart';
 
 class StreamShowcasePage extends StatelessWidget {
   const StreamShowcasePage({
     super.key,
-    required this.transactionCounter,
-    required this.status,
     required this.activityLog,
+    required this.orderHeadline,
+    required this.serviceSignal,
+    required this.stockByDrink,
+    required this.tickets,
+    required this.total,
   });
 
-  final Reactive<int> transactionCounter;
-  final Reactive<String> status;
   final Reactive<List<String>> activityLog;
+  final Reactive<String> orderHeadline;
+  final Reactive<String> serviceSignal;
+  final Reactive<Map<String, int>> stockByDrink;
+  final Reactive<List<OrderTicket>> tickets;
+  final Reactive<double> total;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('StreamBuilder Live View')),
+      appBar: AppBar(title: const Text('Kitchen Stream Monitor')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This page listens only through streams.',
+              'This page listens with streams and local reactive state only.',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 12),
@@ -35,12 +39,13 @@ class StreamShowcasePage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: StreamBuilder<String>(
-                  stream: status.stream,
-                  builder:
-                      (context, snapshot) => Text(
-                        snapshot.data ?? '',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                  stream: orderHeadline.stream,
+                  builder: (context, snapshot) {
+                    return Text(
+                      snapshot.data ?? orderHeadline.value,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    );
+                  },
                 ),
               ),
             ),
@@ -48,110 +53,125 @@ class StreamShowcasePage extends StatelessWidget {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: StreamBuilder<int>(
-                  stream: transactionCounter.stream,
-                  builder:
-                      (context, snapshot) => Text(
-                        'txCounter stream value: ${snapshot.data}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                child: StreamBuilder<double>(
+                  stream: total.stream,
+                  builder: (context, snapshot) {
+                    final value = snapshot.data ?? total.value;
+                    return Text(
+                      'Live total: \$${value.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    );
+                  },
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: StreamBuilder<String>(
+                  stream: serviceSignal.stream,
+                  builder: (context, snapshot) {
+                    return Text('Signal: ${snapshot.data ?? serviceSignal.value}');
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Text(
-              'Reactive State Builder for multiple states:',
-              style: Theme.of(context).textTheme.bodyMedium,
+              'Local station mode with ReactiveStateBuilder',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            ReactiveStateBuilder(
-              initialState: false,
+            ReactiveStateBuilder<bool>(
+              initialState: true,
               states: {
                 true:
-                    (reactive) => ElevatedButton(
-                      onPressed: () => reactive.value = false,
-                      child: const Text('Disable Transaction'),
+                    (reactive) => FilledButton.tonal(
+                      onPressed: () => reactive.disable(),
+                      child: const Text('Bar station is open'),
                     ),
                 false:
-                    (reactive) => ElevatedButton(
-                      onPressed: () => reactive.value = true,
-                      child: const Text('Enable Transaction'),
+                    (reactive) => OutlinedButton(
+                      onPressed: () => reactive.enable(),
+                      child: const Text('Reopen bar station'),
                     ),
               },
             ),
-            ReactiveStateBuilder(
-              initialState: _nameReactive?.value ?? 'No name',
-              onInit: (reactive) {
-                _nameReactive = reactive;
-              },
-              states: {
-                'No name':
-                    (reactive) => ElevatedButton(
-                      onPressed: () => reactive.value = 'John Doe',
-                      child: const Text('My name is John Doe'),
-                    ),
-                'John Doe':
-                    (reactive) => ElevatedButton(
-                      onPressed: () => reactive.value = 'No name',
-                      child: const Text('I don\'t remember my name'),
-                    ),
-              },
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _nameReactive?.value = 'Unexistent Name';
-              },
-              child: const Text('Set Unexistent Name'),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Manage the counter state with :',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    if (Random().nextBool()) {
-                      transactionCounter.inc(10);
-                    } else {
-                      transactionCounter.dec(10);
-                    }
-                  },
-                  child: const Text('Increment or Decrement Counter'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    transactionCounter.save();
-                  },
-                  child: const Text('Save Counter State'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    transactionCounter.restore();
-                  },
-                  child: const Text('Restore Counter State'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    transactionCounter.unsave();
-                  },
-                  child: const Text('Clear Saved State'),
-                ),
-              ],
-            ),
+            const SizedBox(height: 16),
             Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: StreamBuilder<List<OrderTicket>>(
+                          stream: tickets.stream,
+                          builder: (context, snapshot) {
+                            final items = snapshot.data ?? tickets.value;
+                            if (items.isEmpty) {
+                              return const Center(
+                                child: Text('No kitchen tickets yet.'),
+                              );
+                            }
+                            return ListView.builder(
+                              itemCount: items.length,
+                              itemBuilder: (context, index) {
+                                final ticket = items[index];
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text('#${ticket.id} • ${ticket.shortLabel}'),
+                                  subtitle: Text(ticket.ready ? 'Ready' : 'In progress'),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: StreamBuilder<Map<String, int>>(
+                          stream: stockByDrink.stream,
+                          builder: (context, snapshot) {
+                            final stock = snapshot.data ?? stockByDrink.value;
+                            return ListView(
+                              children:
+                                  stock.entries
+                                      .map(
+                                        (entry) => ListTile(
+                                          dense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                          title: Text(entry.key),
+                                          trailing: Text('${entry.value}'),
+                                        ),
+                                      )
+                                      .toList(),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 180,
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: StreamBuilder<List<String>>(
                     stream: activityLog.stream,
                     builder: (context, snapshot) {
-                      final items = snapshot.data ?? const <String>[];
+                      final items = snapshot.data ?? activityLog.value;
                       if (items.isEmpty) {
                         return const Center(child: Text('No logs yet.'));
                       }

@@ -1,275 +1,233 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-void dp([dynamic v = '']) {
-  debugPrint(v.toString());
-}
-
 void main() {
-  test("Computed reactives", () {
-    final r1 = 0.reactive();
-    final r2 = 0.2.reactive();
-    final rC = Reactive.compute(
-      () => Reactive.compute(() => 0).value + r1.value + r2.value,
-    );
+  group('Reactive core', () {
+    test('listen can emit the current value immediately', () {
+      final counter = 3.reactive();
+      final emitted = <int>[];
 
-    rC.listen((c) {
-      dp(c);
+      counter.listen((value) {
+        emitted.add(value);
+      }, true);
+
+      counter.increment(2);
+
+      expect(emitted, [3, 5]);
     });
 
-    r1.increment();
-    r1.increment();
-    r2.increment(5);
-  });
-  test('Validator', () {
-    final counter = 0.reactive();
-    counter
-        .require((v) => v > 0)
-        .require((v) => v < 4, "Counter should be less than 4");
-
-    counter.listen((v) {
-      dp("Counter: $v");
-    });
-
-    counter.inc();
-    counter.inc();
-    counter.dec();
-    counter.dec();
-    counter.dec();
-    counter.inc();
-    counter.inc();
-    try {
-      counter.inc(); // throw
-    } on ReactiveValidatorError catch (e) {
-      print("Oups $e, value ${e.value} is not good");
-    }
-  });
-  test('Nums changes', () {
-    final counter = 0.reactive();
-    counter.listen((v) {
-      dp("Counter: $v");
-    });
-    counter.increment(2);
-    expect(counter.value, 2);
-    counter.decrement(7);
-    expect(counter.value, -5);
-    counter.increment(0);
-    expect(counter.value, -5);
-    counter.increment(-1);
-    expect(counter.value, -6);
-  });
-
-  test("List changes", () {
-    final list = Reactive(<int>[]);
-    list.listen((v) {
-      dp("List: $v");
-    });
-
-    final evenList = list.transform(filter: (element) => element % 2 == 0);
-    evenList.listen((v) {
-      dp("Even List: $v");
-    });
-    list.add(1);
-    list.add(2);
-    list.add(3);
-    list.remove(2);
-    list.add(4);
-    list.add(5);
-    list.add(6);
-  });
-
-  test("Combine reactives", () {
-    final active = true.reactive();
-    final count = 0.reactive();
-    final message = ReactiveN<String>();
-    final status = Reactive.combine3(
-      active,
-      count,
-      message,
-      (isActive, cnt, msg) =>
-          'Status: ${isActive ? "Active" : "Inactive"}, Count: $cnt, Message: $msg',
-    );
-    status.listen((value) {
-      print(value);
-    });
-
-    active.disable();
-    count.value = 10;
-    message.value = 'Hello';
-    active.toggle();
-  });
-
-  test("User model", () {
-    final user = ReactiveN<UserModel>();
-    user.listen((value) {
-      print("$value");
-    });
-
-    user.value = UserModel(name: "Max", age: 22);
-
-    user.mutate((u) {
-      u?.name = "oedo";
-    });
-  });
-
-  group('Transactions', () {
-    test('Transaction with no errors', () {
-      final counter = 0.reactive().require(
-        (v) => v >= 0,
-        "Counter cannot be negative",
+    test('compute tracks nested dependencies and stays read-only', () {
+      final quantity = 1.reactive();
+      final price = 4.5.reactive();
+      final total = Reactive.compute(
+        () => Reactive.compute(() => 0).value + quantity.value * price.value,
       );
-      counter.listen((v) {
-        dp("Counter: $v");
+      final emitted = <num>[];
+
+      total.listen((value) {
+        emitted.add(value);
       });
 
-      Reactive.run(
-        () {
-          counter.inc(5);
-          counter.inc(3);
-          counter.dec(2);
-        },
-        onError: (error) {
-          print("Transaction failed with error: $error");
-        },
-      );
+      quantity.increment();
+      price.increment(0.5);
 
-      expect(counter.value, 6);
+      expect(total.value, 10);
+      expect(emitted, [9, 10]);
+      expect(() => total.value = 12, throwsException);
     });
 
-    test('Transaction with errors and rollback', () {
-      final counter = 0.reactive().require(
-        (v) => v >= 0,
-        "Counter cannot be negative",
-      );
-      counter.listen((v) {
-        dp("Counter: $v");
+    test('combine5 updates from all sources and is read-only', () {
+      final drink = 'Latte'.reactive();
+      final qty = 1.reactive();
+      final member = false.reactive();
+      final rush = false.reactive();
+      final note = ''.reactive();
+
+      final summary = Reactive.combine5(drink, qty, member, rush, note, (
+        drink,
+        qty,
+        member,
+        rush,
+        note,
+      ) {
+        final cleanNote = note.isEmpty ? 'no note' : note;
+        return '$qty x $drink | ${member ? 'member' : 'guest'} | '
+            '${rush ? 'rush' : 'standard'} | $cleanNote';
       });
 
-      Reactive.run(
-        () {
-          counter.inc(5);
-          counter.dec(10); // This will cause an error
-          counter.inc(3); // This won't execute
-        },
-        rollbackOnError: true, // default
-        onError: (error) {
-          print("Transaction failed with error: $error");
-        },
-      );
+      qty.increment(2);
+      member.enable();
+      rush.enable();
+      note.value = 'oat milk';
 
-      expect(counter.value, 0);
+      expect(summary.value, '3 x Latte | member | rush | oat milk');
+      expect(() => summary.value = 'override', throwsException);
     });
 
-    test('Transaction with errors and no rollback', () {
-      final counter = 0.reactive().require(
-        (v) => v >= 0,
-        "Counter cannot be negative",
+    test('transactions support rollback and manual rollback', () async {
+      final stock = <String, int>{'Latte': 3}.reactive().require(
+        (value) => value.values.every((entry) => entry >= 0),
+        'Stock cannot go negative',
       );
-      counter.listen((v) {
-        dp("Counter: $v");
+      final sold = <String>[].reactive(false);
+
+      await Reactive.run(() {
+        stock.put('Latte', stock.get('Latte')! - 2);
+        sold.add('ticket-1');
       });
 
-      Reactive.run(
-        () {
-          counter.inc(5);
-          counter.dec(10); // This will cause an error
-          counter.inc(3); // This won't execute after the error
-        },
-        rollbackOnError: false,
-        onError: (error) {
-          print("Transaction failed with error: $error");
-        },
-      );
+      expect(stock.get('Latte'), 1);
+      expect(sold.value, ['ticket-1']);
 
-      expect(counter.value, 5);
-    });
+      await Reactive.run(() {
+        stock.put('Latte', stock.get('Latte')! - 4);
+        sold.add('ticket-2');
+      }, onError: (_) {});
 
-    test('Manual rollback after transaction', () async {
-      final counter = 0.reactive().require(
-        (v) => v >= 0,
-        "Counter cannot be negative",
-      );
-      counter.listen((v) {
-        dp("Counter: $v");
-      });
+      expect(stock.get('Latte'), 1);
+      expect(sold.value, ['ticket-1']);
 
-      final transaction = await Reactive.run(
-        () {
-          counter.inc(5);
-          counter.dec(10); // This will cause an error
-          counter.inc(3); // This won't execute after the error
-        },
-        rollbackOnError: false,
-        onError: (error) {
-          print("Transaction failed with error: $error");
-        },
-      );
+      final transaction = await Reactive.run(() {
+        stock.put('Latte', stock.get('Latte')! - 1);
+        sold.add('ticket-3');
+      }, rollbackOnError: false);
 
-      expect(counter.value, 5);
+      expect(stock.get('Latte'), 0);
+      expect(sold.value, ['ticket-1', 'ticket-3']);
+
       transaction.rollback();
-      expect(counter.value, 0);
-    });
-  });
 
-  test('When method', () {
-    final counter = 0.reactive();
-    counter.listen((v) {
-      dp("Counter: $v");
+      expect(stock.get('Latte'), 1);
+      expect(sold.value, ['ticket-1']);
     });
 
-    counter.when((v) => v == 0, (_) => print("Counter is zero"));
+    test('save restore and helper extensions behave as expected', () async {
+      final note = '  latte  '.reactive();
+      final queue = <int>[2, 5, 1].reactive(false);
+      final stock = <String, int>{'Latte': 2}.reactive();
+      final counter = 0.reactive();
+      var whenHits = 0;
 
-    counter.inc();
-    counter.dec();
-  });
-
-  test('list', () async {
-    final rList = [0, 2, 4, 3, 4, 5].reactive().require((l) => !l.contains(6));
-    rList.listen((list) {
-      dp('list : $list');
-    });
-
-    rList[5] = 8;
-
-    final transaction = await Reactive.run(() async {
-      dp(rList.at(0));
-      dp(rList.atOrNull(10));
-      rList.addFirst(1);
-      dp(rList[0]);
-      rList.add(6);
-      dp(rList.last);
-      rList.remove(2);
-      rList.removeAll(4);
-      rList.forEach((i) {
-        dp('$i ${i * 2}');
+      counter.when((value) => value == 2, (_) {
+        whenHits++;
       });
+
+      note.trim();
+      note.toUpper();
+      note.append(' READY');
+      expect(note.value, 'LATTE READY');
+
+      queue.addFirst(9);
+      queue.sort();
+      expect(queue.value, [1, 2, 5, 9]);
+      expect(queue.at(1), 2);
+      expect(queue.atOrNull(10), isNull);
+
+      final evenQueue = queue.transform(filter: (value) => value.isEven);
+      queue.add(6);
+      expect(evenQueue.value, [2, 6]);
+
+      stock.put('Cookie', 4);
+      stock.remove('Latte');
+      expect(stock.has('Cookie'), isTrue);
+      expect(stock.get('Latte'), isNull);
+
+      counter.value = 1;
+      counter.save('draft');
+      counter.increment();
+      expect(whenHits, 1);
+      counter.restore('draft');
+      expect(counter.value, 1);
+
+      await counter.setAsync(Future.value(7));
+      expect(counter.value, 7);
+    });
+  });
+
+  group('Reactive widgets', () {
+    testWidgets('ReactiveBuilder auto-tracks reactive reads', (tester) async {
+      final counter = 0.reactive();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReactiveBuilder(() {
+              return Text('count ${counter.value}');
+            }),
+          ),
+        ),
+      );
+
+      expect(find.text('count 0'), findsOneWidget);
+
+      counter.value = 4;
+      await tester.pump();
+
+      expect(find.text('count 4'), findsOneWidget);
     });
 
-    transaction.rollback();
+    testWidgets('ReactiveBuilder.watch2 rebuilds from both sources', (
+      tester,
+    ) async {
+      final drink = 'Latte'.reactive();
+      final qty = 1.reactive();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReactiveBuilder.watch2(drink, qty, (drink, qty) {
+              return Text('$qty x $drink');
+            }),
+          ),
+        ),
+      );
+
+      expect(find.text('1 x Latte'), findsOneWidget);
+
+      qty.increment(2);
+      await tester.pump();
+      expect(find.text('3 x Latte'), findsOneWidget);
+
+      drink.value = 'Matcha';
+      await tester.pump();
+      expect(find.text('3 x Matcha'), findsOneWidget);
+    });
+
+    testWidgets('ReactiveStateBuilder swaps local widget states', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReactiveStateBuilder<bool>(
+              initialState: false,
+              states: {
+                false:
+                    (reactive) => ElevatedButton(
+                      onPressed: reactive.enable,
+                      child: const Text('Open'),
+                    ),
+                true:
+                    (reactive) => ElevatedButton(
+                      onPressed: reactive.disable,
+                      child: const Text('Close'),
+                    ),
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Open'), findsOneWidget);
+
+      await tester.tap(find.text('Open'));
+      await tester.pump();
+      expect(find.text('Close'), findsOneWidget);
+
+      await tester.tap(find.text('Close'));
+      await tester.pump();
+      expect(find.text('Open'), findsOneWidget);
+    });
   });
-}
-
-class UserModel {
-  String name;
-  int age;
-  UserModel({required this.name, required this.age});
-
-  @override
-  String toString() => 'UserModel(name: $name, age: $age)';
-}
-
-class _Test extends StatefulWidget {
-  const _Test();
-
-  @override
-  State<_Test> createState() => _TestState();
-}
-
-class _TestState extends State<_Test> {
-  @override
-  Widget build(BuildContext context) {
-    return Container();
-  }
 }

@@ -80,12 +80,8 @@ extension ReactiveIterable<T> on Reactive<Iterable<T>> {
     bool? shuffle,
     int? take,
   }) {
-    testTrue(_) => true;
-
-    final r = Reactive(value.where(filter ?? testTrue).toList(), strict);
-
-    listen((l) {
-      var filtered = l.where(filter ?? testTrue).toList();
+    final r = as((l) {
+      var filtered = l.where(filter ?? (_) => true).toList();
       if (sortBy != null) {
         filtered.sort((a, b) {
           if (sortByDesc == true) return sortBy(b).compareTo(sortBy(a));
@@ -102,7 +98,7 @@ extension ReactiveIterable<T> on Reactive<Iterable<T>> {
         filtered = filtered.take(take).toList();
       }
 
-      r.value = filtered;
+      return filtered;
     });
 
     return r;

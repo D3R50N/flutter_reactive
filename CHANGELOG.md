@@ -1,13 +1,20 @@
 # Changelog
 
-## 0.1.1
+## 1.0.0 (🚨 Breaking changes)
 
+- Old `ReactiveBuilder` is now `ReactiveBuilder.watch(reactive, builder)` and `ReactiveBuilder(() { ... })` now auto-tracks reactive reads directly in the widget builder
+- Updated `Reactive.build(...)` to use the new `ReactiveBuilder.watch(...)` API
+- Added `ReactiveBuilder.watch2`..`ReactiveBuilder.watch5`
 - Changed `list.dart` to `iterable.dart`
-- Added new methods to iterable, map and string reactives
-- Renamed `computed` to `compute` and changed how it works
-- `compute`, `as`, `combine2`, and 3, 4 and 5 are now read-only
-- Added new methods and operators to Reactives num and string
+- `Reactive.computed(...)` is now `Reactive.compute(...)` and can auto-tracks reactives
 - Remove `ReactiveStreamBuilder` widget cause it was not relevant
+- Added new methods to iterable, map and string reactives
+- Updated `transform(...)` method of reactive lists
+- Added new methods and operators to Reactives num and string
+- Added optional `emitInitial` positional argument to `listen(callback, [emitInitial])`
+  to immediately emit the current value on subscription
+- Updated tests, README examples, and example app to match the new builder and
+  listener APIs
 
 ## 0.1.0
 

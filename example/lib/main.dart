@@ -1,107 +1,299 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
+import 'models/order_ticket.dart';
 import 'page2.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const CafeOpsApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class CafeOpsApp extends StatelessWidget {
+  const CafeOpsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Reactive Example',
+      title: 'Flutter Reactive Cafe Ops',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
         useMaterial3: true,
       ),
-      home: const ShowcasePage(),
+      home: const CafeOpsPage(),
     );
   }
 }
 
-class ShowcasePage extends StatefulWidget {
-  const ShowcasePage({super.key});
+class CafeOpsPage extends StatefulWidget {
+  const CafeOpsPage({super.key});
 
   @override
-  State<ShowcasePage> createState() => _ShowcasePageState();
+  State<CafeOpsPage> createState() => _CafeOpsPageState();
 }
 
-class _ShowcasePageState extends State<ShowcasePage> {
-  final Random _random = Random();
-  ReactiveTransaction? _pendingTransaction;
+class _CafeOpsPageState extends State<CafeOpsPage> {
+  static const _draftId = 'order-draft';
+  static const Map<String, double> _menuPrices = {
+    'Espresso': 3.20,
+    'Latte': 5.10,
+    'Matcha': 5.80,
+    'Cookie': 2.40,
+  };
 
-  late final Reactive<int> txCounter = 0.reactive().require(
-    (v) => v >= 0,
-    'Counter cannot be negative',
+  int _nextTicketId = 1;
+  late final TextEditingController _noteController;
+
+  late final Reactive<String> selectedDrink = 'Latte'.reactive();
+  late final Reactive<int> quantity = 1
+      .reactive()
+      .require((value) => value > 0, 'Quantity must be at least 1')
+      .require((value) => value <= 6, 'Quantity is capped at 6 per ticket');
+  late final Reactive<bool> isMember = false.reactive();
+  late final Reactive<bool> rushMode = false.reactive();
+  late final Reactive<String> customerNote = ''.reactive();
+  late final Reactive<String> queueFilter = 'all'.reactive();
+  late final Reactive<String> savedDraftLabel = 'Draft: none'.reactive(false);
+  late final Reactive<String> serviceSignal = 'Counter ready'.reactive(false);
+  late final Reactive<int> serviceSignalHits = 0.reactive(false);
+  late final Reactive<List<String>> activityLog = <String>[].reactive(false);
+  late final Reactive<Map<String, int>> stockByDrink = <String, int>{
+        'Espresso': 14,
+        'Latte': 9,
+        'Matcha': 7,
+        'Cookie': 18,
+      }
+      .reactive(false)
+      .require(
+        (stock) => stock.values.every((value) => value >= 0),
+        'Stock cannot go negative',
+      );
+  late final Reactive<List<OrderTicket>> tickets = <OrderTicket>[].reactive(
+    false,
   );
 
-  late final Reactive<List<int>> numbers = <int>[8, 3, 11, 2].reactive(false);
-  late final Reactive<int> strictValue = 10.reactive();
-  late final Reactive<int> nonStrictValue = 10.reactive(false);
-  late final Reactive<int> strictNotifications = 0.reactive(false);
-  late final Reactive<int> nonStrictNotifications = 0.reactive(false);
-  late final Reactive<List<String>> activityLog = <String>[].reactive(false);
-
-  late final Reactive<String> status =
-      Reactive.combine2<int, List<int>, String>(
-        txCounter,
-        numbers,
-        (counter, items) => 'Counter: $counter | Numbers: ${items.join(", ")}',
-      );
-
-  late final Reactive<String> strictStatus =
-      Reactive.combine4<int, int, int, int, String>(
-        strictValue,
-        nonStrictValue,
-        strictNotifications,
-        nonStrictNotifications,
-        (strict, nonStrict, strictHits, nonStrictHits) =>
-            'strict=$strict ($strictHits notifications) • '
-            'nonStrict=$nonStrict ($nonStrictHits notifications)',
-      );
-
-  late final void Function(int value) _strictListener;
-  late final void Function(int value) _nonStrictListener;
+  late final Reactive<double> unitPrice = Reactive.compute(
+    () => _menuPrices[selectedDrink.value]!,
+  );
+  late final Reactive<double> subtotal = Reactive.compute(
+    () => unitPrice.value * quantity.value,
+  );
+  late final Reactive<double> discount = Reactive.compute(
+    () => isMember.value ? subtotal.value * 0.12 : 0,
+  );
+  late final Reactive<double> total = Reactive.compute(
+    () => subtotal.value - discount.value,
+  );
+  late final Reactive<int> etaMinutes = Reactive.compute(
+    () => (rushMode.value ? 6 : 3) + quantity.value * 2,
+  );
+  late final Reactive<String> orderHeadline = Reactive.combine3(
+    selectedDrink,
+    quantity,
+    isMember,
+    (drink, qty, member) =>
+        '$qty x $drink${member ? ' with member discount' : ''}',
+  );
+  late final Reactive<List<OrderTicket>> openTickets = tickets.transform(
+    filter: (ticket) => !ticket.ready,
+    reverse: true,
+  );
+  late final Reactive<List<OrderTicket>> readyTickets = tickets.transform(
+    filter: (ticket) => ticket.ready,
+    reverse: true,
+  );
 
   @override
   void initState() {
     super.initState();
+    _noteController = TextEditingController(text: customerNote.value);
 
-    _strictListener = (_) => strictNotifications.increment();
-    _nonStrictListener = (_) => nonStrictNotifications.increment();
+    selectedDrink.listen((drink) {
+      _addLog('Composer ready for $drink.');
+    }, true);
 
-    strictValue.listen(_strictListener);
-    nonStrictValue.listen(_nonStrictListener);
+    serviceSignal.listen((signal) {
+      serviceSignalHits.increment();
+      _addLog('Service signal: $signal.');
+    }, true);
 
-    txCounter.when((v) => v != 0 && v % 5 == 0, (v) {
-      _addLog('when() fired: txCounter reached $v');
+    quantity.when((value) => value >= 4, (value) {
+      _addLog('Large order alert: $value items on one ticket.');
     });
 
-    _addLog('Showcase ready. Try each section to test v0.1.0 features.');
+    quantity.throttle(400, (value) {
+      _addLog('Quick edit: quantity adjusted to $value.');
+    });
+
+    customerNote.debounce(600, (value) {
+      final note = value.trim();
+      if (note.isNotEmpty) {
+        _addLog('Debounced note saved: "$note".');
+      }
+    });
+
+    customerNote.listen((value) {
+      if (_noteController.text == value) return;
+      _noteController.value = TextEditingValue(
+        text: value,
+        selection: TextSelection.collapsed(offset: value.length),
+      );
+    }, true);
   }
 
   @override
   void dispose() {
-    strictValue.unlisten(_strictListener);
-    nonStrictValue.unlisten(_nonStrictListener);
-
-    txCounter.dispose();
-    numbers.dispose();
-    strictValue.dispose();
-    nonStrictValue.dispose();
-    strictNotifications.dispose();
-    nonStrictNotifications.dispose();
+    _noteController.dispose();
+    selectedDrink.dispose();
+    quantity.dispose();
+    isMember.dispose();
+    rushMode.dispose();
+    customerNote.dispose();
+    queueFilter.dispose();
+    savedDraftLabel.dispose();
+    serviceSignal.dispose();
+    serviceSignalHits.dispose();
     activityLog.dispose();
-    status.dispose();
-    strictStatus.dispose();
+    stockByDrink.dispose();
+    tickets.dispose();
+    unitPrice.dispose();
+    subtotal.dispose();
+    discount.dispose();
+    total.dispose();
+    etaMinutes.dispose();
+    orderHeadline.dispose();
+    openTickets.dispose();
+    readyTickets.dispose();
     super.dispose();
+  }
+
+  void _addLog(String message) {
+    final now = DateTime.now();
+    final stamp =
+        '${now.hour.toString().padLeft(2, '0')}:'
+        '${now.minute.toString().padLeft(2, '0')}:'
+        '${now.second.toString().padLeft(2, '0')}';
+
+    activityLog.mutate((items) {
+      items.add('[$stamp] $message');
+      if (items.length > 40) {
+        items.removeRange(0, items.length - 40);
+      }
+    });
+  }
+
+  Future<void> _submitTicket() async {
+    final drink = selectedDrink.value;
+    final qty = quantity.value;
+    final note = customerNote.trimmed;
+    var submitted = false;
+
+    await Reactive.run(
+      () {
+        stockByDrink.put(drink, (stockByDrink.get(drink) ?? 0) - qty);
+        tickets.addFirst(
+          OrderTicket(
+            id: _nextTicketId++,
+            drink: drink,
+            quantity: qty,
+            note: note,
+            member: isMember.value,
+            rush: rushMode.value,
+            ready: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        customerNote.clear();
+        quantity.value = 1;
+        rushMode.disable();
+        submitted = true;
+      },
+      onError: (error) {
+        _addLog('Submit failed: ${_formatError(error)}');
+      },
+    );
+
+    if (submitted) {
+      serviceSignal.value = 'Order sent to bar';
+      _addLog('Submitted ticket for $drink x$qty.');
+    }
+  }
+
+  void _saveDraft() {
+    selectedDrink.save(_draftId);
+    quantity.save(_draftId);
+    isMember.save(_draftId);
+    rushMode.save(_draftId);
+    customerNote.save(_draftId);
+    savedDraftLabel.value = 'Draft: ${quantity.value} x ${selectedDrink.value}';
+    serviceSignal.value = 'Draft saved';
+  }
+
+  void _restoreDraft() {
+    selectedDrink.restore(_draftId);
+    quantity.restore(_draftId);
+    isMember.restore(_draftId);
+    rushMode.restore(_draftId);
+    customerNote.restore(_draftId);
+    serviceSignal.value = 'Draft restored';
+    _addLog('Restored saved order draft.');
+  }
+
+  void _clearDraft() {
+    selectedDrink.unsave(_draftId);
+    quantity.unsave(_draftId);
+    isMember.unsave(_draftId);
+    rushMode.unsave(_draftId);
+    customerNote.unsave(_draftId);
+    savedDraftLabel.value = 'Draft: none';
+    serviceSignal.value = 'Draft cleared';
+  }
+
+  void _appendDefaultNote() {
+    if (customerNote.isEmpty) {
+      customerNote.value = 'extra hot';
+      return;
+    }
+    customerNote.append(', oat milk');
+  }
+
+  void _trimNote() {
+    customerNote.trim();
+  }
+
+  void _ringPickupBell() {
+    serviceSignal.value = 'Pickup ready';
+  }
+
+  void _restock(String drink) {
+    stockByDrink.put(drink, (stockByDrink.get(drink) ?? 0) + 3);
+    _addLog('Restocked $drink by 3 units.');
+  }
+
+  void _toggleReady(OrderTicket ticket) {
+    final index = tickets.value.indexWhere((item) => item.id == ticket.id);
+    if (index == -1) return;
+
+    final next = ticket.copyWith(ready: !ticket.ready);
+    tickets[index] = next;
+
+    if (next.ready) {
+      serviceSignal.value = 'Pickup ready';
+      _addLog('Ticket #${ticket.id} is ready.');
+    } else {
+      _addLog('Ticket #${ticket.id} moved back to in progress.');
+    }
+  }
+
+  void _clearReadyTickets() {
+    final removed = readyTickets.length;
+    tickets.removeWhere((ticket) => ticket.ready);
+    _addLog('Cleared $removed ready ticket(s).');
+  }
+
+  void _sortQueueByDrink() {
+    tickets.sort((a, b) => a.drink.compareTo(b.drink));
+    _addLog('Sorted queue alphabetically by drink.');
   }
 
   String _formatError(Object error) {
@@ -111,392 +303,471 @@ class _ShowcasePageState extends State<ShowcasePage> {
     return error.toString();
   }
 
-  void _addLog(String message) {
-    final now = DateTime.now();
-    final time =
-        '${now.hour.toString().padLeft(2, '0')}:'
-        '${now.minute.toString().padLeft(2, '0')}:'
-        '${now.second.toString().padLeft(2, '0')}';
-
-    activityLog.mutate((logs) {
-      logs.add('[$time] $message');
-      if (logs.length > 30) {
-        logs.removeRange(0, logs.length - 30);
-      }
-    });
-  }
-
-  Future<void> _runSuccessfulTransaction() async {
-    final before = txCounter.value;
-    _pendingTransaction = null;
-
-    await Reactive.run(
-      () {
-        txCounter.inc(4);
-        txCounter.dec(1);
-      },
-      onError: (error) {
-        _addLog('Unexpected transaction error: ${_formatError(error)}');
-      },
-    );
-
-    _addLog('Transaction success: $before -> ${txCounter.value}');
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _runAutoRollbackTransaction() async {
-    final before = txCounter.value;
-    _pendingTransaction = null;
-
-    await Reactive.run(
-      () {
-        txCounter.inc(3);
-        txCounter.dec(txCounter.value + 10); // force an invalid value (< 0)
-      },
-      onError: (error) {
-        _addLog('Auto rollback: ${_formatError(error)}');
-      },
-    );
-
-    _addLog('Auto rollback result: $before -> ${txCounter.value}');
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _runManualRollbackTransaction() async {
-    final before = txCounter.value;
-
-    _pendingTransaction = await Reactive.run(
-      () {
-        txCounter.inc(3);
-        txCounter.dec(txCounter.value + 10); // force an invalid value (< 0)
-      },
-      rollbackOnError: false,
-      onError: (error) {
-        _addLog('No auto rollback: ${_formatError(error)}');
-      },
-    );
-
-    _addLog(
-      'Manual rollback pending: $before -> ${txCounter.value}. Tap "Rollback pending".',
-    );
-    if (mounted) setState(() {});
-  }
-
-  void _rollbackPendingTransaction() {
-    final transaction = _pendingTransaction;
-    if (transaction == null) {
-      _addLog('No pending transaction to rollback.');
-      return;
+  List<OrderTicket> _visibleTickets() {
+    switch (queueFilter.value) {
+      case 'open':
+        return openTickets.toList();
+      case 'ready':
+        return readyTickets.toList();
+      default:
+        return tickets.toList();
     }
-
-    final before = txCounter.value;
-    transaction.rollback();
-    _pendingTransaction = null;
-    _addLog('Manual rollback executed: $before -> ${txCounter.value}');
-    updateState();
-  }
-
-  void _incrementStrictDemoValues() {
-    strictValue.inc();
-    nonStrictValue.inc();
-    _addLog('Incremented strict and non-strict values.');
-  }
-
-  void _setSameValueOnBoth() {
-    strictValue.value = strictValue.value;
-    nonStrictValue.value = nonStrictValue.value;
-    _addLog('Set same value on both (only non-strict notifies).');
-  }
-
-  void _resetStrictDemo() {
-    strictValue.value = 10;
-    nonStrictValue.value = 10;
-    strictNotifications.value = 0;
-    nonStrictNotifications.value = 0;
-    _addLog('Strict mode demo reset.');
-  }
-
-  void _addRandomNumber() {
-    final value = _random.nextInt(90) + 10;
-    numbers.add(value);
-    _addLog('Added $value to list.');
-  }
-
-  void _shuffleNumbers() {
-    numbers.mutate((list) => list.shuffle(_random));
-    _addLog('List shuffled.');
-  }
-
-  void _sortAscending() {
-    numbers.sort();
-    _addLog('List sorted ascending with ReactiveList.sort().');
-  }
-
-  void _sortDescending() {
-    numbers.sort((a, b) => b.compareTo(a));
-    _addLog('List sorted descending with custom compare.');
-  }
-
-  void _stepCounter() {
-    txCounter.inc();
-    _addLog('Manual increment: txCounter is now ${txCounter.value}.');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flutter Reactive v0.1.0 Showcase'),
+        title: const Text('Cafe Ops with Flutter Reactive 1.0'),
         actions: [
           IconButton(
-            tooltip: 'Open stream page',
+            tooltip: 'Open stream monitor',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder:
                       (_) => StreamShowcasePage(
-                        transactionCounter: txCounter,
-                        status: status,
                         activityLog: activityLog,
+                        orderHeadline: orderHeadline,
+                        serviceSignal: serviceSignal,
+                        stockByDrink: stockByDrink,
+                        tickets: tickets,
+                        total: total,
                       ),
                 ),
               );
             },
-            icon: const Icon(Icons.wifi_tethering),
+            icon: const Icon(Icons.sensors),
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'New features in action',
-              style: Theme.of(context).textTheme.headlineSmall,
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ReactiveBuilder(() {
+                final nextTicket = openTickets.atOrNull(0);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Front counter snapshot',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(orderHeadline.value),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Total: \$${total.value.toStringAsFixed(2)} | '
+                      'ETA: ${etaMinutes.value} min | '
+                      'Open queue: ${openTickets.length}',
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      nextTicket == null
+                          ? 'Next ticket: none yet'
+                          : 'Next ticket: ${nextTicket.shortLabel}',
+                    ),
+                  ],
+                );
+              }),
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Transactions, when(), strict mode behavior, and list sorting.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: ReactiveBuilder.compute(
-                  () => Row(
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Compose an order',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  ReactiveBuilder.watch(
+                    selectedDrink,
+                    (drink) => DropdownButtonFormField<String>(
+                      value: drink,
+                      decoration: const InputDecoration(labelText: 'Menu item'),
+                      items:
+                          _menuPrices.keys
+                              .map(
+                                (item) => DropdownMenuItem(
+                                  value: item,
+                                  child: Text(
+                                    '$item • \$${_menuPrices[item]!.toStringAsFixed(2)}',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        if (value != null) selectedDrink.value = value;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      ReactiveBuilder.compute(() {
-                        return Text(txCounter.toString());
+                      OutlinedButton(
+                        onPressed: () {
+                          if (quantity.value > 1) quantity.dec();
+                        },
+                        child: const Text('-'),
+                      ),
+                      const SizedBox(width: 12),
+                      ReactiveBuilder.watch(quantity, (value) {
+                        return Text(
+                          'Quantity: $value',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        );
                       }),
-                      Text(numbers.toString()),
+                      const SizedBox(width: 12),
+                      FilledButton(
+                        onPressed: () => quantity.inc(),
+                        child: const Text('+'),
+                      ),
                     ],
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: ReactiveBuilder<String>(
-                  reactive: status,
-                  builder: (value) => Text(value),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Transactions + rollback + validator rename',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    ReactiveBuilder<int>(
-                      reactive: txCounter,
-                      builder: (value) => Text('txCounter: $value'),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _pendingTransaction == null
-                          ? 'Pending rollback: none'
-                          : 'Pending rollback: available',
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                  const SizedBox(height: 12),
+                  ReactiveBuilder.watch2(isMember, rushMode, (member, rush) {
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
                       children: [
-                        OutlinedButton(
-                          onPressed: _stepCounter,
-                          child: const Text('Counter +1 (when test)'),
+                        FilterChip(
+                          label: const Text('Member'),
+                          selected: member,
+                          onSelected: (_) => isMember.toggle(),
                         ),
-                        FilledButton(
-                          onPressed: _runSuccessfulTransaction,
-                          child: const Text('Run success transaction'),
-                        ),
-                        FilledButton.tonal(
-                          onPressed: _runAutoRollbackTransaction,
-                          child: const Text('Fail + auto rollback'),
-                        ),
-                        FilledButton.tonal(
-                          onPressed: _runManualRollbackTransaction,
-                          child: const Text('Fail + manual rollback'),
-                        ),
-                        OutlinedButton(
-                          onPressed:
-                              _pendingTransaction == null
-                                  ? null
-                                  : _rollbackPendingTransaction,
-                          child: const Text('Rollback pending'),
+                        FilterChip(
+                          label: const Text('Rush prep'),
+                          selected: rush,
+                          onSelected: (_) => rushMode.toggle(),
                         ),
                       ],
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _noteController,
+                    decoration: const InputDecoration(
+                      labelText: 'Customer note',
+                      hintText: 'eg. extra hot, no syrup',
                     ),
-                  ],
-                ),
+                    maxLines: 2,
+                    onChanged: (value) => customerNote.value = value,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _appendDefaultNote,
+                        child: const Text('Add default note'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _trimNote,
+                        child: const Text('Trim note'),
+                      ),
+                      OutlinedButton(
+                        onPressed: customerNote.clear,
+                        child: const Text('Clear note'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton(
+                        onPressed: _submitTicket,
+                        child: const Text('Submit ticket'),
+                      ),
+                      FilledButton.tonal(
+                        onPressed: _saveDraft,
+                        child: const Text('Save draft'),
+                      ),
+                      FilledButton.tonal(
+                        onPressed: _restoreDraft,
+                        child: const Text('Restore draft'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _clearDraft,
+                        child: const Text('Clear draft'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ReactiveBuilder.watch(savedDraftLabel, (value) {
+                    return Text(value);
+                  }),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Strict mode: `.reactive()` vs `.reactive(false)`',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    ReactiveBuilder<String>(
-                      reactive: strictStatus,
-                      builder: (value) => Text(value),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        FilledButton(
-                          onPressed: _incrementStrictDemoValues,
-                          child: const Text('Increment both'),
-                        ),
-                        FilledButton.tonal(
-                          onPressed: _setSameValueOnBoth,
-                          child: const Text('Set same value'),
-                        ),
-                        OutlinedButton(
-                          onPressed: _resetStrictDemo,
-                          child: const Text('Reset demo'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Explicit builder APIs',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  ReactiveBuilder.watch(selectedDrink, (drink) {
+                    return Text('watch: $drink selected');
+                  }),
+                  const SizedBox(height: 6),
+                  ReactiveBuilder.watch2(selectedDrink, quantity, (drink, qty) {
+                    return Text('watch2: $qty x $drink');
+                  }),
+                  const SizedBox(height: 6),
+                  ReactiveBuilder.watch3(selectedDrink, quantity, isMember, (
+                    drink,
+                    qty,
+                    member,
+                  ) {
+                    return Text(
+                      'watch3: ${member ? 'Member' : 'Guest'} order for $qty x $drink',
+                    );
+                  }),
+                  const SizedBox(height: 6),
+                  ReactiveBuilder.watch4(
+                    selectedDrink,
+                    quantity,
+                    rushMode,
+                    etaMinutes,
+                    (drink, qty, rush, eta) {
+                      return Text(
+                        'watch4: $qty x $drink | ${rush ? 'Rush' : 'Standard'} | ETA $eta min',
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  ReactiveBuilder.watch5(
+                    selectedDrink,
+                    quantity,
+                    isMember,
+                    rushMode,
+                    customerNote,
+                    (drink, qty, member, rush, note) {
+                      final cleanNote = note.trim().isEmpty ? 'No note' : note;
+                      return Text(
+                        'watch5: $qty x $drink | ${member ? 'member' : 'guest'} | ${rush ? 'rush' : 'standard'} | $cleanNote',
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ReactiveList.sort()',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    ReactiveBuilder<List<int>>(
-                      reactive: numbers,
-                      builder: (values) => Text(values.join(' • ')),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Stock and service signals',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  ReactiveBuilder.watch2(stockByDrink, serviceSignal, (
+                    stock,
+                    signal,
+                  ) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        FilledButton(
-                          onPressed: _addRandomNumber,
-                          child: const Text('Add random'),
+                        ...stock.entries.map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${entry.key}: ${entry.value} left',
+                                  ),
+                                ),
+                                OutlinedButton(
+                                  onPressed: () => _restock(entry.key),
+                                  child: const Text('Restock +3'),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        FilledButton.tonal(
-                          onPressed: _shuffleNumbers,
-                          child: const Text('Shuffle'),
-                        ),
-                        FilledButton.tonal(
-                          onPressed: _sortAscending,
-                          child: const Text('Sort asc'),
-                        ),
-                        OutlinedButton(
-                          onPressed: _sortDescending,
-                          child: const Text('Sort desc'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
+                        const SizedBox(height: 8),
+                        Text('Signal: $signal'),
                         Text(
-                          'Activity log',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: activityLog.clear,
-                          child: const Text('Clear'),
+                          'Signal notifications: ${serviceSignalHits.value}',
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 220,
-                      child: ReactiveBuilder<List<String>>(
-                        reactive: activityLog,
-                        builder: (items) {
-                          if (items.isEmpty) {
-                            return const Center(
-                              child: Text(
-                                'No events yet. Try the buttons above.',
+                    );
+                  }),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.tonal(
+                        onPressed: _ringPickupBell,
+                        child: const Text('Ring pickup bell'),
+                      ),
+                      OutlinedButton(
+                        onPressed: () => serviceSignal.value = 'Counter ready',
+                        child: const Text('Reset signal'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Kitchen queue',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  ReactiveBuilder(() {
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text('All (${tickets.length})'),
+                          selected: queueFilter.value == 'all',
+                          onSelected: (_) => queueFilter.value = 'all',
+                        ),
+                        ChoiceChip(
+                          label: Text('Open (${openTickets.length})'),
+                          selected: queueFilter.value == 'open',
+                          onSelected: (_) => queueFilter.value = 'open',
+                        ),
+                        ChoiceChip(
+                          label: Text('Ready (${readyTickets.length})'),
+                          selected: queueFilter.value == 'ready',
+                          onSelected: (_) => queueFilter.value = 'ready',
+                        ),
+                      ],
+                    );
+                  }),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _sortQueueByDrink,
+                        child: const Text('Sort by drink'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _clearReadyTickets,
+                        child: const Text('Clear ready'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ReactiveBuilder(() {
+                    final visible = _visibleTickets();
+                    if (visible.isEmpty) {
+                      return const Text('No tickets for this filter.');
+                    }
+
+                    return Column(
+                      children:
+                          visible.map((ticket) {
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(
+                                '#${ticket.id} • ${ticket.shortLabel}',
+                              ),
+                              subtitle: Text(
+                                [
+                                  if (ticket.member) 'member',
+                                  if (ticket.rush) 'rush',
+                                  if (ticket.note.isNotEmpty) ticket.note,
+                                ].join(' • ').ifEmpty('standard order'),
+                              ),
+                              trailing: FilledButton.tonal(
+                                onPressed: () => _toggleReady(ticket),
+                                child: Text(
+                                  ticket.ready ? 'Reopen' : 'Mark ready',
+                                ),
                               ),
                             );
-                          }
-                          return ListView.builder(
-                            reverse: true,
-                            itemCount: items.length,
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Text(items[index]),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                          }).toList(),
+                    );
+                  }),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Activity log',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: activityLog.clear,
+                        child: const Text('Clear'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 240,
+                    child: ReactiveBuilder.watch(activityLog, (items) {
+                      if (items.isEmpty) {
+                        return const Center(child: Text('No events yet.'));
+                      }
+                      return ListView.builder(
+                        reverse: true,
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(items[index]),
+                          );
+                        },
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+extension on String {
+  String ifEmpty(String fallback) => trim().isEmpty ? fallback : this;
 }

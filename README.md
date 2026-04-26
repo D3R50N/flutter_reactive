@@ -57,7 +57,7 @@ or manually add in your `pubspec.yaml`
 
 ```yaml
 dependencies:
-  flutter_reactive: ^0.2.0
+  flutter_reactive: ^1.0.0
 ```
 
 then
@@ -67,6 +67,8 @@ import 'package:flutter_reactive/flutter_reactive.dart';
 ```
 
 ## Quick Start
+
+_🚨 If you come from `0.x` versions, [see breaking changes here](#breaking-changes-in-100)._
 
 We recommend to prefix all reactive variable names with a lowercase `r` to make them instantly recognizable in your codebase.
 
@@ -122,6 +124,7 @@ void onCounterChanged(int value) {
 }
 
 rCounter.listen(onCounterChanged);
+rCounter.listen(onCounterChanged, true); // emitInitial
 rCounter.unlisten(onCounterChanged);
 
 rCounter.stream.listen((value) {
@@ -140,12 +143,27 @@ StreamBuilder<int>(
 
 ### ReactiveBuilder
 
-Build a widget based on a reactive value. 
+Build a widget either by automatically tracking reactive reads, or by
+watching a specific reactive value.
+
+- `ReactiveBuilder(() { ... })` automatically tracks every reactive read inside the builder
+- `ReactiveBuilder.watch(reactive, builder)` listens to one explicit reactive
+- `ReactiveBuilder.watch2..watch5(...)` provide typed builders for multiple explicit reactives
 
 ```dart
-ReactiveBuilder<int>(
-  reactive: rCounter,
-  builder: (value) => Text('Count: $value'),
+ReactiveBuilder(() {
+  return Text('Count: ${rCounter.value}');
+});
+![enter image description here](https://www.gstatic.com/acx/play/console//brt/play_console_ui_20260423_2240_RC00/main/play.console.ui.common.images/logos/navigation_menu.svg)
+ReactiveBuilder.watch(
+  rCounter,
+  (value) => Text('Count: $value'),
+);
+
+ReactiveBuilder.watch2(
+  rPrice,
+  rQty,
+  (price, qty) => Text('Total: ${price * qty}'),
 );
 
 // Equivalent helper on Reactive<T>
@@ -216,6 +234,8 @@ final rTotal = Reactive.compute(() => rPrice.value * rQty.value);
 ```
 
 `compute` and `combine*` outputs are read-only (derived values).
+If you are migrating from an older version, `Reactive.computed(...)`
+becomes `Reactive.compute(...)`.
 
 ## Transactions and Rollback
 
@@ -352,6 +372,86 @@ They provide helpers for `Reactive<DateTime>`, `Reactive<Duration>`, and `Reacti
 - Use strict mode (`strict = true`) for predictable change detection.
 - Use non-strict mode (`strict = false`) when same-value notifications are required.
 - Dispose long-lived reactives you no longer need: `reactive.dispose()`.
+
+## Breaking Changes in 1.0.0
+
+- `ReactiveBuilder(reactive: ..., builder: ...)` is no longer the main API
+- `Reactive.computed(...)` is now `Reactive.compute(...)`
+- `listen(callback)` now also supports `listen(callback, true)` to emit immediately
+- `extensions/list.dart` is now `extensions/iterable.dart`
+
+## Migration from 0.x
+
+### `ReactiveBuilder`
+
+Before:
+
+```dart
+ReactiveBuilder<int>(
+  reactive: rCounter,
+  builder: (value) => Text('$value'),
+);
+
+ReactiveBuilder.compute(() {
+  return Text('${rCounter.value}');
+});
+```
+
+Now:
+
+```dart
+ReactiveBuilder.watch(
+  rCounter,
+  (value) => Text('$value'),
+);
+
+ReactiveBuilder(() {
+  return Text('${rCounter.value}');
+});
+```
+
+### `computed(...)` to `compute(...)`
+
+Before:
+
+```dart
+final total = Reactive.computed(() => price.value * qty.value);
+```
+
+Now:
+
+```dart
+final total = Reactive.compute(() => price.value * qty.value);
+```
+
+### `listen(...)`
+
+Before:
+
+```dart
+rCounter.listen(onCounterChanged);
+```
+
+Now:
+
+```dart
+rCounter.listen(onCounterChanged);
+rCounter.listen(onCounterChanged, true); // emit current value immediately
+```
+
+### `list.dart`
+
+Before:
+
+```dart
+import 'package:flutter_reactive/extensions/list.dart';
+```
+
+Now:
+
+```dart
+import 'package:flutter_reactive/extensions/iterable.dart';
+```
 
 ## License
 

@@ -62,8 +62,10 @@ class Reactive<T> {
   final Map<String, T> _savedStates = {};
 
   final List<Reactive> _computedReactives = [];
+  final Map<Reactive<dynamic>, _ReactiveListener<dynamic>>
+  _computedDependencyListeners = {};
 
-  static Reactive? _currentComputing;
+  static final List<Reactive<dynamic>> _computingStack = [];
 
   bool _readOnly = false;
 
@@ -74,9 +76,10 @@ class Reactive<T> {
 
   /// Current value of the reactive.
   T get value {
-    if (_currentComputing != null) {
-      if (!_currentComputing!._computedReactives.contains(this)) {
-        _currentComputing!._computedReactives.add(this);
+    if (_computingStack.isNotEmpty) {
+      final current = _computingStack.last;
+      if (!current._computedReactives.contains(this)) {
+        current._computedReactives.add(this);
       }
     }
     return _value;
@@ -231,15 +234,23 @@ class Reactive<T> {
   ///
   /// Listeners are value-based and **do not trigger UI rebuilds**
   /// unless you explicitly bind a [State].
-  void listen(_ReactiveListener<T> callback) {
+  ///
+  /// If [emitInitial] is true, the callback is also invoked right away
+  /// with the current value.
+  void listen(_ReactiveListener<T> callback, [bool emitInitial = false]) {
     if (!_listeners.contains(callback)) {
       _listeners.add(callback);
+    }
+
+    if (emitInitial) {
+      callback(value);
     }
   }
 
   /// Dispose everything when done.
   void dispose() {
     unsaveAll();
+    _clearComputedDependencyListeners();
     _listeners.clear();
     _boundStates.clear();
     _controller.close();
@@ -300,23 +311,46 @@ class Reactive<T> {
   /// Same as combine but the combination function is not required
   static Reactive<R> compute<R>(R Function() fn) {
     final tempComputed = ReactiveN<R>();
-    _currentComputing = tempComputed;
-    final value = fn();
-    _currentComputing = null;
+    final value = _trackDependencies(tempComputed, fn);
 
     final computed = Reactive<R>(value);
     computed._readOnly = true;
     computed._computedReactives.addAll(tempComputed._computedReactives);
 
     void update(_) {
+      // computed._clearComputedDependencyListeners();
+      // computed._computedReactives.clear();
+
       computed._set(fn());
+      // computed._listenToComputedDependencies(update);
     }
 
-    for (final dep in computed._computedReactives) {
-      dep.listen(update);
-    }
+    computed._listenToComputedDependencies(update);
 
     return computed;
+  }
+
+  void _listenToComputedDependencies(_ReactiveListener<dynamic> listener) {
+    for (final dep in _computedReactives) {
+      dep.listen(listener);
+      _computedDependencyListeners[dep] = listener;
+    }
+  }
+
+  void _clearComputedDependencyListeners() {
+    for (final entry in _computedDependencyListeners.entries) {
+      entry.key.unlisten(entry.value);
+    }
+    _computedDependencyListeners.clear();
+  }
+
+  static R _trackDependencies<R>(Reactive<dynamic> target, R Function() fn) {
+    _computingStack.add(target);
+    try {
+      return fn();
+    } finally {
+      _computingStack.removeLast();
+    }
   }
 
   /// Combines two reactive values into a new [Reactive].
@@ -434,8 +468,8 @@ class Reactive<T> {
   }
 
   /// Shortcut for [ReactiveBuilder]
-  ReactiveBuilder<T> build(Widget Function(T v) builder) {
-    return ReactiveBuilder<T>(reactive: this, builder: builder);
+  Widget build(Widget Function(T v) builder) {
+    return ReactiveBuilder.watch(this, builder);
   }
 
   /// Add a new validator

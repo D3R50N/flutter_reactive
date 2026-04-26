@@ -29,7 +29,7 @@ class _ReactiveStateBuilderState<T> extends State<ReactiveStateBuilder<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return ReactiveBuilder(reactive: _state, builder: (v) {
+    return ReactiveBuilder.watch(_state, (v) {
       final builder = widget.states[v];
       if (builder != null) {
         return builder(_state);
