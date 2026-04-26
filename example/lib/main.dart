@@ -413,7 +413,14 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     children: [
                       OutlinedButton(
                         onPressed: () {
-                          if (quantity.value > 1) quantity.dec();
+                          try {
+                            quantity.dec();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
                         },
                         child: const Text('-'),
                       ),
@@ -426,7 +433,16 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                       }),
                       const SizedBox(width: 12),
                       FilledButton(
-                        onPressed: () => quantity.inc(),
+                        onPressed: () {
+                          try {
+                            quantity.inc();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).clearSnackBars();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
+                        },
                         child: const Text('+'),
                       ),
                     ],
