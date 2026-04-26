@@ -29,7 +29,7 @@ class ReactiveStreamBuilder<T> extends StatelessWidget {
   });
 
   /// The reactive value to listen to.
-  final Reactive<T> reactive;
+  final BaseReactive<T> reactive;
 
   /// Builder function that receives the [BuildContext] and [AsyncSnapshot] of the reactive value.
   final Widget Function(BuildContext, AsyncSnapshot<T>) builder;

@@ -49,14 +49,14 @@ class _ShowcasePageState extends State<ShowcasePage> {
   late final Reactive<int> nonStrictNotifications = 0.reactive(false);
   late final Reactive<List<String>> activityLog = <String>[].reactive(false);
 
-  late final Reactive<String> status =
+  late final status =
       Reactive.combine2<int, List<int>, String>(
         txCounter,
         numbers,
         (counter, items) => 'Counter: $counter | Numbers: ${items.join(", ")}',
       );
 
-  late final Reactive<String> strictStatus =
+  late final strictStatus =
       Reactive.combine4<int, int, int, int, String>(
         strictValue,
         nonStrictValue,

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
@@ -12,7 +13,7 @@ class ReactiveBuilder<T> extends StatefulWidget {
   });
 
   /// The reactive value to listen to.
-  final Reactive<T> reactive;
+  final BaseReactive<T> reactive;
 
   /// Builder function that receives only the current value.
   final Widget Function(T value) builder;

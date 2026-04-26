@@ -18,12 +18,12 @@ export 'widgets/reactive_builder.dart';
 export 'widgets/state_builder.dart';
 export 'widgets/stream_builder.dart';
 
+part 'core/base_reactive.dart';
+part 'core/readonly_reactive.dart';
 part 'core/transaction.dart';
 part 'core/transaction_manager.dart';
 part 'core/validator.dart';
 part 'flutter_reactive_n.dart';
-
-typedef _ReactiveListener<T> = void Function(T value);
 
 /// A lightweight reactive state holder.
 ///
@@ -43,57 +43,14 @@ typedef _ReactiveListener<T> = void Function(T value);
 /// ```
 ///
 /// All bound widgets will automatically rebuild.
-class Reactive<T> {
+class Reactive<T> extends BaseReactive<T> {
   /// Creates a new [Reactive] with an initial value.
-  Reactive(this._value, [this.strict = true]);
-
-  T _value;
-  final bool strict;
-
-  /// States bound to this reactive.
-  /// Every bound state will be rebuilt when the value changes.
-  final List<State> _boundStates = [];
-
-  /// Raw listeners notified on value changes.
-  final List<_ReactiveListener<T>> _listeners = [];
-
-  /// Validators to control incoming values.
-  final List<ReactiveValidator<T>> _validators = [];
+  Reactive(super._value, [super.strict = true]);
 
   final Map<String, T> _savedStates = {};
 
-  final List<Reactive> _computedReactives = [];
-
-  static Reactive? _currentComputing;
-
-  bool _readOnly = false;
-
-  final
-      /// Stream controller
-      _controller =
-      StreamController<T>.broadcast();
-
-  /// Current value of the reactive.
-  T get value {
-    if (_currentComputing != null) {
-      if (!_currentComputing!._computedReactives.contains(this)) {
-        _currentComputing!._computedReactives.add(this);
-      }
-    }
-    return _value;
-  }
-
-  /// Expose a broadcast stream of value changes.
-  Stream<T> get stream => _controller.stream;
-
   /// Updates the value and notifies listeners and bound states.
   set value(T newValue) => set(newValue);
-
-  bool _equals(T newValue) {
-    if (_value == newValue) return true;
-    if (newValue is List) return listEquals(_value as List, newValue as List);
-    return false;
-  }
 
   /// Sets a new value.
   ///
@@ -102,27 +59,7 @@ class Reactive<T> {
   /// If the value is rejected by any validator, it is not updated and no notification occurs.
   /// If the value is updated, all bound states are rebuilt and listeners are notified.
   /// If the value is updated within a transaction, notifications are deferred until the transaction is committed.
-  void set(T newValue) {
-    if (_readOnly) throw Exception('Cannot modify a read-only Reactive');
-    _set(newValue);
-  }
-
-  void _set(T newValue) {
-    for (final v in _validators) {
-      final valid = v.run(newValue);
-      if (!valid) return;
-    }
-
-    if (_equals(newValue) && strict) return;
-    if (ReactiveTransactionManager._inTransaction) {
-      ReactiveTransactionManager._register(this);
-      _value =
-          newValue; // register before changing value to capture the original state
-    } else {
-      _value = newValue;
-      notify();
-    }
-  }
+  void set(T newValue) => _set(newValue);
 
   /// Sets asynchronously
   Future<void> setAsync(Future<T> futureValue) async {
@@ -166,124 +103,25 @@ class Reactive<T> {
     notify();
   }
 
-  /// Debounces value change notifications.
-  ///
-  void debounce(int milliseconds, _ReactiveListener<T> callback) {
-    Timer? timer;
-    listen((value) {
-      timer?.cancel();
-      timer = Timer(Duration(milliseconds: milliseconds), () {
-        callback(value);
-      });
-    });
-  }
-
-  /// Throttle value change notifications.
-  void throttle(int milliseconds, _ReactiveListener<T> callback) {
-    Timer? timer;
-    listen((value) {
-      if (timer == null) {
-        callback(value);
-        timer = Timer(Duration(milliseconds: milliseconds), () => timer = null);
-      }
-    });
-  }
-
-  /// Triggers an action when a condition is met.
-  /// The [condition] is evaluated on every value change, and when it returns true,
-  /// the [action] is executed with the current value.
-  void when(bool Function(T value) condition, void Function(T value) action) {
-    listen((value) {
-      if (condition(value)) {
-        action(value);
-      }
-    });
-  }
-
-  /// Notifies both bound states, listeners and stream.
-  void notify() {
-    _notifyBoundStates();
-    _notifyListeners();
-    _controller.add(_value);
-  }
-
-  /// Notifies all listeners with the current value.
-  void _notifyListeners() {
-    for (final callback in _listeners) {
-      try {
-        callback(value);
-      } catch (_) {}
-    }
-  }
-
-  /// Rebuilds all bound states.
-  ///
-  /// Unmounted states are automatically removed
-  /// to avoid memory leaks and invalid `setState` calls.
-  void _notifyBoundStates() {
-    _boundStates.removeWhere((state) => !state.mounted);
-
-    for (final state in List<State>.from(_boundStates)) {
-      state.updateState();
-    }
-  }
-
-  /// Adds a listener that will be called on every value change.
-  ///
-  /// Listeners are value-based and **do not trigger UI rebuilds**
-  /// unless you explicitly bind a [State].
-  void listen(_ReactiveListener<T> callback) {
-    if (!_listeners.contains(callback)) {
-      _listeners.add(callback);
-    }
-  }
-
   /// Dispose everything when done.
+  @override
   void dispose() {
     unsaveAll();
-    _listeners.clear();
-    _boundStates.clear();
-    _controller.close();
-    // should clean computed ?
+    super.dispose();
   }
-
-  /// Removes a previously registered listener.
-  void unlisten(_ReactiveListener<T> callback) => _listeners.remove(callback);
-
-  /// Binds a Flutter [State] to this reactive.
-  ///
-  /// When the value changes, `setState()` will automatically
-  /// be called on the bound state.
-  ///
-  /// Example:
-  /// ```dart
-  /// counter.bind(this);
-  /// ```
-  void bind(State state) {
-    if (!_boundStates.contains(state)) {
-      _boundStates.add(state);
-      state.updateState(); // sync UI immediately
-    }
-  }
-
-  /// Unbinds a previously bound [State].
-  ///
-  /// The state will no longer rebuild when the value changes.
-  void unbind(State state) => _boundStates.remove(state);
 
   /// Combines multiple Reactive values (can be of different types) into a single Reactive.
   ///
   /// [dependencies] is the list of Reactive values to listen to.
   /// [combiner] receives a list of current values in the same order you pass them and returns a new value of type R.
-  static Reactive<R> combine<R>(
+  static ReadonlyReactive<R> _combine<R>(
     List<Reactive<dynamic>> dependencies,
     R Function(List<dynamic> values) combiner,
   ) {
     // Initial value
-    final combined = Reactive<R>(
+    final combined = ReadonlyReactive<R>(
       combiner(dependencies.map((r) => r.value).toList()),
     );
-    combined._readOnly = true;
 
     // Callback to update combined whenever a source changes
     void update(_) {
@@ -299,14 +137,13 @@ class Reactive<T> {
   }
 
   /// Same as combine but the combination function is not required
-  static Reactive<R> compute<R>(R Function() fn) {
-    final tempComputed = ReactiveN<R>();
-    _currentComputing = tempComputed;
+  static ReadonlyReactive<R> compute<R>(R Function() fn) {
+    final tempComputed = ReadonlyReactive<R?>(null);
+    BaseReactive._currentComputing = tempComputed;
     final value = fn();
-    _currentComputing = null;
+    BaseReactive._currentComputing = null;
 
-    final computed = Reactive<R>(value);
-    computed._readOnly = true;
+    final computed = ReadonlyReactive<R>(value);
     computed._computedReactives.addAll(tempComputed._computedReactives);
 
     void update(_) {
@@ -337,12 +174,12 @@ class Reactive<T> {
   ///
   /// final sum = Reactive.combine2(a, b, (x, y) => x + y);
   /// ```
-  static Reactive<R> combine2<A, B, R>(
+  static ReadonlyReactive<R> combine2<A, B, R>(
     Reactive<A> a,
     Reactive<B> b,
     R Function(A a, B b) combiner,
   ) {
-    return Reactive.combine([a, b], (l) => combiner(l[0] as A, l[1] as B));
+    return Reactive._combine([a, b], (l) => combiner(l[0] as A, l[1] as B));
   }
 
   /// Combines three reactive values into a new [Reactive].
@@ -369,13 +206,13 @@ class Reactive<T> {
   ///   (c, n, v) => '$n: $c (${v ? "on" : "off"})',
   /// );
   /// ```
-  static Reactive<R> combine3<A, B, C, R>(
+  static ReadonlyReactive<R> combine3<A, B, C, R>(
     Reactive<A> a,
     Reactive<B> b,
     Reactive<C> c,
     R Function(A a, B b, C c) combiner,
   ) {
-    return Reactive.combine([
+    return Reactive._combine([
       a,
       b,
       c,
@@ -383,14 +220,14 @@ class Reactive<T> {
   }
 
   /// Same thing as [combine2] and [combine3], but for four reactives.
-  static Reactive<R> combine4<A, B, C, D, R>(
+  static ReadonlyReactive<R> combine4<A, B, C, D, R>(
     Reactive<A> a,
     Reactive<B> b,
     Reactive<C> c,
     Reactive<D> d,
     R Function(A a, B b, C c, D d) combiner,
   ) {
-    return Reactive.combine([
+    return Reactive._combine([
       a,
       b,
       c,
@@ -399,7 +236,7 @@ class Reactive<T> {
   }
 
   /// Same thing as [combine2], [combine3] but for five reactives.
-  static Reactive<R> combine5<A, B, C, D, E, R>(
+  static ReadonlyReactive<R> combine5<A, B, C, D, E, R>(
     Reactive<A> a,
     Reactive<B> b,
     Reactive<C> c,
@@ -407,7 +244,7 @@ class Reactive<T> {
     Reactive<E> e,
     R Function(A a, B b, C c, D d, E e) combiner,
   ) {
-    return Reactive.combine([
+    return Reactive._combine([
       a,
       b,
       c,
@@ -423,6 +260,7 @@ class Reactive<T> {
   /// final list = Reactive([]);
   /// final length = list.as((l)=>l.length);
   /// ```
+  @override
   Reactive<R> as<R>(R Function(T v) parser) {
     final r = Reactive(parser(value), strict);
 
@@ -434,11 +272,13 @@ class Reactive<T> {
   }
 
   /// Shortcut for [ReactiveBuilder]
+  @override
   ReactiveBuilder<T> build(Widget Function(T v) builder) {
     return ReactiveBuilder<T>(reactive: this, builder: builder);
   }
 
   /// Add a new validator
+  @override
   Reactive<T> require(bool Function(T v) validator, [String? message]) {
     _validators.add(ReactiveValidator(validator, message));
     return this;

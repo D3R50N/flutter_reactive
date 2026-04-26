@@ -14,7 +14,7 @@ class StreamShowcasePage extends StatelessWidget {
   });
 
   final Reactive<int> transactionCounter;
-  final Reactive<String> status;
+  final BaseReactive<String> status;
   final Reactive<List<String>> activityLog;
 
   @override

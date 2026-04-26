@@ -1,4 +1,4 @@
-part of 'package:flutter_reactive/flutter_reactive.dart';
+part of '../flutter_reactive.dart';
 
 /// Manages transactions for Reactive instances, allowing for batching updates and rollbacks.
 class ReactiveTransactionManager {

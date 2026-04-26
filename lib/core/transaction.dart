@@ -1,4 +1,4 @@
-part of 'package:flutter_reactive/flutter_reactive.dart';
+part of '../flutter_reactive.dart';
 
 /// Represents a transaction that tracks changes to Reactive instances.
 /// Allows for batching updates and rolling back changes if needed.
