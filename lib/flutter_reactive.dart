@@ -46,7 +46,20 @@ class Reactive<T> {
   /// Creates a new [Reactive] with an initial value.
   Reactive(this._value, [this.strict = true]);
 
+  /// Controls whether [stream] immediately emits the current value on subscription.
+  ///
+  /// When true, each new `stream.listen(...)` receives the current value through
+  /// the broadcast stream as soon as the listener is attached.
+  ///
+  /// This setting is global for all [Reactive] instances.
+  static bool streamEmitOnListen = true;
+
   T _value;
+
+  /// Whether identical values should be ignored.
+  ///
+  /// When true, assigning a value equal to the current one does not notify
+  /// listeners, streams, or bound widgets.
   final bool strict;
 
   /// States bound to this reactive.
@@ -69,10 +82,12 @@ class Reactive<T> {
 
   bool _readOnly = false;
 
-  final
-      /// Stream controller
-      _controller =
-      StreamController<T>.broadcast();
+  /// Internal broadcast controller used by [stream].
+  late final _controller = StreamController<T>.broadcast(
+    onListen: () {
+      if (streamEmitOnListen) _notifyStreams();
+    },
+  );
 
   /// Current value of the reactive.
   T get value {
@@ -85,7 +100,10 @@ class Reactive<T> {
     return _value;
   }
 
-  /// Expose a broadcast stream of value changes.
+  /// Exposes a broadcast stream of value changes.
+  ///
+  /// Depending on [streamEmitOnListen], a new subscriber may immediately receive
+  /// the current value before future updates.
   Stream<T> get stream => _controller.stream;
 
   /// Updates the value and notifies listeners and bound states.
@@ -126,7 +144,7 @@ class Reactive<T> {
     }
   }
 
-  /// Sets asynchronously
+  /// Sets the value from a future once it completes.
   Future<void> setAsync(Future<T> futureValue) async {
     value = await futureValue;
   }
@@ -204,8 +222,12 @@ class Reactive<T> {
 
   /// Notifies both bound states, listeners and stream.
   void notify() {
+    _notifyStreams();
     _notifyBoundStates();
     _notifyListeners();
+  }
+
+  void _notifyStreams() {
     _controller.add(_value);
   }
 
@@ -472,7 +494,7 @@ class Reactive<T> {
     return ReactiveBuilder.watch(this, builder);
   }
 
-  /// Add a new validator
+  /// Adds a validator and returns this reactive for chaining.
   Reactive<T> require(bool Function(T v) validator, [String? message]) {
     _validators.add(ReactiveValidator(validator, message));
     return this;

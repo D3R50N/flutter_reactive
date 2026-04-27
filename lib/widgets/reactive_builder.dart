@@ -22,6 +22,27 @@ class ReactiveBuilder extends StatefulWidget {
     );
   }
 
+  /// Builds a [StreamBuilder] wired to the [reactive] stream.
+  ///
+  /// This is useful when you want direct access to the [AsyncSnapshot]
+  /// produced by Flutter's stream widgets.
+  ///
+  /// When [withInitial] is true, the current [reactive] value is
+  /// passed to `StreamBuilder.initialData`.
+  static Widget stream<T>(
+    Reactive<T> reactive,
+    AsyncWidgetBuilder<T> builder, {
+    Key? key,
+    bool withInitial = true,
+  }) {
+    return StreamBuilder<T>(
+      key: key,
+      stream: reactive.stream,
+      initialData: withInitial ? reactive.value : null,
+      builder: builder,
+    );
+  }
+
   /// Build a widget from two explicit reactive values.
   static Widget watch2<A, B>(
     Reactive<A> a,

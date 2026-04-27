@@ -4,6 +4,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Reactive core', () {
+    test('Emit stream direclty', () async {
+      final name = 'max'.reactive();
+      final list = name.as((n) => n.split(''));
+      final t = list.transform(reverse: true);
+
+      t.listen((value) {
+        print('value $value');
+      });
+
+      t.stream.listen((value) {
+        print('stream value $value');
+      });
+
+      // name.set('andy');
+    });
+
     test('listen can emit the current value immediately', () {
       final counter = 3.reactive();
       final emitted = <int>[];
@@ -192,6 +208,29 @@ void main() {
       drink.value = 'Matcha';
       await tester.pump();
       expect(find.text('3 x Matcha'), findsOneWidget);
+    });
+
+    testWidgets('ReactiveBuilder.stream exposes a StreamBuilder', (
+      tester,
+    ) async {
+      final counter = 2.reactive();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReactiveBuilder.stream(counter, (context, snapshot) {
+              return Text('count ${snapshot.data}');
+            }),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(find.text('count 2'), findsOneWidget);
+
+      counter.value = 5;
+      await tester.pump(Duration(milliseconds: 10)); // tiny wait to propagate stream update 
+      expect(find.text('count 5'), findsOneWidget);
     });
 
     testWidgets('ReactiveStateBuilder swaps local widget states', (

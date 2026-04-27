@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1
+
+- Added `Reactive.streamEmitOnListen` to optionally emit the current stream value as soon as a new stream listener subscribes
+- Added `ReactiveBuilder.stream(reactive, builder, withInitial: true)` as a shortcut around Flutter's `StreamBuilder`
+- Updated `Reactive.notify()` so stream listeners receive updates through the same notification flow as bound states and callback listeners
+- Added documentation for the new stream emission behavior and related public API
+
 ## 1.0.0 (🚨 Breaking changes)
 
 - Old `ReactiveBuilder` is now `ReactiveBuilder.watch(reactive, builder)` and `ReactiveBuilder(() { ... })` now auto-tracks reactive reads directly in the widget builder

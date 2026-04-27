@@ -131,6 +131,16 @@ rCounter.stream.listen((value) {
   debugPrint('Stream value: $value');
 });
 
+Reactive.streamEmitOnListen = true;
+rCounter.stream.listen((value) {
+  debugPrint('Immediate stream value: $value');
+});
+
+Reactive.streamEmitOnListen = false;
+rCounter.stream.listen((value) {
+  debugPrint('Only future stream values: $value');
+});
+
 // or inside a stream builder
 StreamBuilder<int>(
   stream: rCounter.stream,
@@ -148,6 +158,7 @@ watching a specific reactive value.
 
 - `ReactiveBuilder(() { ... })` automatically tracks every reactive read inside the builder
 - `ReactiveBuilder.watch(reactive, builder)` listens to one explicit reactive
+- `ReactiveBuilder.stream(reactive, builder, withInitial: true)` exposes a Flutter `StreamBuilder`
 - `ReactiveBuilder.watch2..watch5(...)` provide typed builders for multiple explicit reactives
 
 ```dart
@@ -158,6 +169,11 @@ ReactiveBuilder(() {
 ReactiveBuilder.watch(
   rCounter,
   (value) => Text('Count: $value'),
+);
+
+ReactiveBuilder.stream(
+  rCounter,
+  (context, snapshot) => Text('Count: ${snapshot.data}'),
 );
 
 ReactiveBuilder.watch2(
