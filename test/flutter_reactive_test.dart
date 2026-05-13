@@ -37,7 +37,7 @@ void main() {
       final quantity = 1.reactive();
       final price = 4.5.reactive();
       final total = Reactive.compute(
-        () => Reactive.compute(() => 0).value + quantity.value * price.value,
+        () => Reactive.compute(() => 0) + quantity * price,
       );
       final emitted = <num>[];
 
@@ -229,7 +229,9 @@ void main() {
       expect(find.text('count 2'), findsOneWidget);
 
       counter.value = 5;
-      await tester.pump(Duration(milliseconds: 10)); // tiny wait to propagate stream update 
+      await tester.pump(
+        Duration(milliseconds: 10),
+      ); // tiny wait to propagate stream update
       expect(find.text('count 5'), findsOneWidget);
     });
 

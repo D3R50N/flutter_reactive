@@ -28,6 +28,14 @@ class _ReactiveStateBuilderState<T> extends State<ReactiveStateBuilder<T>> {
   }
 
   @override
+  void didUpdateWidget(covariant ReactiveStateBuilder<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialState != widget.initialState) {
+      _state.value = widget.initialState;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ReactiveBuilder.watch(_state, (v) {
       final builder = widget.states[v];

@@ -24,8 +24,6 @@ Flutter Reactive has **_zero_** external dependencies — just a plain Dart obje
 | Built-in reactivity (no setup) ?  | ✅               | ❌   | ❌       | ❌   |
 | Automatic UI updates ?            | ✅               | ✅   | ❌       | ✅   |
 | No external dependency required ? | ✅               | ❌   | ❌       | ❌   |
-| Good for small apps ?             | ✅               | ✅   | ✅       | ❌   |
-| Good for large apps ?             | ✅               | ❌   | ✅       | ✅   |
 | Supports computed values easily ? | ✅               | ❌   | ❌       | ❌   |
 | Supports side effects cleanly ?   | ✅               | ❌   | ❌       | ❌   |
 | Transaction / rollback system ?   | ✅               | ❌   | ❌       | ❌   |
@@ -165,7 +163,7 @@ watching a specific reactive value.
 ReactiveBuilder(() {
   return Text('Count: ${rCounter.value}');
 });
-![enter image description here](https://www.gstatic.com/acx/play/console//brt/play_console_ui_20260423_2240_RC00/main/play.console.ui.common.images/logos/navigation_menu.svg)
+
 ReactiveBuilder.watch(
   rCounter,
   (value) => Text('Count: $value'),

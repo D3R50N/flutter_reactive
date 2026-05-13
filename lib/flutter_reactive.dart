@@ -112,6 +112,8 @@ class Reactive<T> {
   bool _equals(T newValue) {
     if (_value == newValue) return true;
     if (newValue is List) return listEquals(_value as List, newValue as List);
+    if (newValue is Map) return mapEquals(_value as Map, newValue as Map);
+    if (newValue is Set) return setEquals(_value as Set, newValue as Set);
     return false;
   }
 
@@ -182,7 +184,7 @@ class Reactive<T> {
   /// - Prefer immutable objects when possible
   /// - Use `mutate` only when in-place mutation is required
   void mutate(void Function(T value) mutator) {
-    mutator(_value);
+    mutator(value);
     notify();
   }
 
@@ -340,11 +342,9 @@ class Reactive<T> {
     computed._computedReactives.addAll(tempComputed._computedReactives);
 
     void update(_) {
-      // computed._clearComputedDependencyListeners();
-      // computed._computedReactives.clear();
-
-      computed._set(fn());
-      // computed._listenToComputedDependencies(update);
+      
+      final newValue = _trackDependencies(tempComputed, fn);
+      computed._set(newValue);
     }
 
     computed._listenToComputedDependencies(update);
