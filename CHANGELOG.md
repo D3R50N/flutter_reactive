@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+- Fixed `Reactive.compute(...)` dependency retracking so dynamic and nested computed values keep working after updates
+- Fixed a listener iteration issue where multiple computed values declared sequentially could cause earlier computed listeners to stop receiving updates
+- Added regression tests covering nested computed values and multiple computed listeners declared side by side
+
 ## 1.0.1
 
 - Added `Reactive.streamEmitOnListen` to optionally emit the current stream value as soon as a new stream listener subscribes

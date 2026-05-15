@@ -129,13 +129,10 @@ class Reactive<T> {
     _set(newValue);
   }
 
-  void _set(T newValue) {
-    for (final v in _validators) {
-      final valid = v.run(newValue);
-      if (!valid) return;
-    }
+  void _set(T newValue, [bool checkEquality = true]) {
+    if (!_validate(newValue)) return;
 
-    if (_equals(newValue) && strict) return;
+    if (checkEquality && _equals(newValue) && strict) return;
     if (ReactiveTransactionManager._inTransaction) {
       ReactiveTransactionManager._register(this);
       _value =
@@ -184,8 +181,8 @@ class Reactive<T> {
   /// - Prefer immutable objects when possible
   /// - Use `mutate` only when in-place mutation is required
   void mutate(void Function(T value) mutator) {
-    mutator(value);
-    notify();
+    mutator(_value);
+    _set(_value, false);
   }
 
   /// Debounces value change notifications.
@@ -235,7 +232,7 @@ class Reactive<T> {
 
   /// Notifies all listeners with the current value.
   void _notifyListeners() {
-    for (final callback in _listeners) {
+    for (final callback in List<_ReactiveListener<T>>.from(_listeners)) {
       try {
         callback(value);
       } catch (_) {}
@@ -342,9 +339,11 @@ class Reactive<T> {
     computed._computedReactives.addAll(tempComputed._computedReactives);
 
     void update(_) {
-      
-      final newValue = _trackDependencies(tempComputed, fn);
+      computed._clearComputedDependencyListeners();
+      computed._computedReactives.clear();
+      final newValue = _trackDependencies(computed, fn);
       computed._set(newValue);
+      computed._listenToComputedDependencies(update);
     }
 
     computed._listenToComputedDependencies(update);
@@ -498,6 +497,14 @@ class Reactive<T> {
   Reactive<T> require(bool Function(T v) validator, [String? message]) {
     _validators.add(ReactiveValidator(validator, message));
     return this;
+  }
+
+  bool _validate(T value) {
+    for (final validator in _validators) {
+      final valid = validator.run(value);
+      if (!valid) return false;
+    }
+    return true;
   }
 
   /// Save the current value under a specific [id].
