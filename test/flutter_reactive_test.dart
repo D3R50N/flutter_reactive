@@ -3,9 +3,24 @@ import 'package:flutter_reactive/flutter_reactive.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'user_model.dart';
+import 'user_store.dart';
 
 void main() {
   group('Reactive core', () {
+    test('Dependency', () {
+      final store = UserStore().dep;
+      store.updateName('Bob');
+      expect(store.name.value, 'Bob');
+
+      final store2 = UserStore().dep;
+      expect(store2.name.value, 'Bob');
+
+      store.dispose();
+      expect(() => ReactiveDependency.of<UserStore>(), throwsException);
+
+      final store3 = UserStore().dep;
+      expect(store3.name.value, 'Alice');
+    });
     test('ReactiveSubscription', () {
       final counter = 0.rt;
       var calls = 0;
@@ -42,7 +57,7 @@ void main() {
           .require((u) => u.name.trim().isNotEmpty, 'Name cannot be empty');
 
       user.listen((value) {
-        print('User updated: $value');
+        debugPrint('User updated: $value');
       });
 
       try {
@@ -57,8 +72,8 @@ void main() {
           u.age = 46;
         });
       } on ReactiveValidatorError catch (e) {
-        print(e.message);
-        print(e.value);
+        debugPrint(e.message);
+        debugPrint('${e.value}');
       }
     });
     test('Emit stream direclty', () async {
@@ -67,11 +82,11 @@ void main() {
       final t = list.transform(reverse: true);
 
       t.listen((value) {
-        print('value $value');
+        debugPrint('value $value');
       });
 
       t.stream.listen((value) {
-        print('stream value $value');
+        debugPrint('stream value $value');
       });
 
       // name.set('andy');
@@ -318,6 +333,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(useMaterial3: false),
           home: Scaffold(
             body: ReactiveBuilder.stream(counter, (context, snapshot) {
               return Text('count ${snapshot.data}');
@@ -341,6 +357,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(useMaterial3: false),
           home: Scaffold(
             body: ReactiveStateBuilder<bool>(
               initialState: false,

@@ -2,6 +2,8 @@
 
 ## 1.0.3
 
+- Added `ReactiveDependency` for cached shared stores and dependencies
+- Added `.dependency` and `.dep` extensions for simple dependency reuse
 - Added `Rxb` alias for `ReactiveBuilder` to simplify usage and reduce boilerplate in widget builders
 - Changed `.reactive()` extension to a simpler `.rt` and added `.rtNonStrict` for non-strict mode reactive creation. Same for nullable version with `.rtN` and `.rtNNonStrict`
 _ Added `.once(callback)` method to `Reactive` for one-time reactions that automatically unsubscribe after the first trigger

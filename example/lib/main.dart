@@ -385,7 +385,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                   Rxb.watch(
                     selectedDrink,
                     (drink) => DropdownButtonFormField<String>(
-                      value: drink,
+                      initialValue: drink,
                       decoration: const InputDecoration(labelText: 'Menu item'),
                       items:
                           _menuPrices.keys

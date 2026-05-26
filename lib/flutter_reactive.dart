@@ -15,6 +15,7 @@ export 'extensions/string.dart';
 export 'widgets/reactive_builder.dart';
 export 'widgets/state_builder.dart';
 
+part 'core/reactive_dependency.dart';
 part 'core/reactive_subscription.dart';
 part 'core/transaction.dart';
 part 'core/transaction_manager.dart';
@@ -187,9 +188,12 @@ class Reactive<T> {
 
   /// Debounces value change notifications.
   ///
-  ReactiveSubscription<T> debounce(int milliseconds, _ReactiveListener<T> callback) {
+  ReactiveSubscription<T> debounce(
+    int milliseconds,
+    _ReactiveListener<T> callback,
+  ) {
     Timer? timer;
-   final sub = listen((value) {
+    final sub = listen((value) {
       timer?.cancel();
       timer = Timer(Duration(milliseconds: milliseconds), () {
         callback(value);
@@ -227,7 +231,6 @@ class Reactive<T> {
     });
   }
 
-
   /// Adds a listener that will be called on every value change.
   ///
   /// Listeners are value-based and **do not trigger UI rebuilds**
@@ -254,7 +257,7 @@ class Reactive<T> {
 
     return listen(wrapper, emitInitial);
   }
-  
+
   /// Notifies both bound states, listeners and stream.
   void notify() {
     _notifyStreams();
@@ -286,7 +289,6 @@ class Reactive<T> {
       state.updateState();
     }
   }
-
 
   /// Dispose everything when done.
   void dispose() {

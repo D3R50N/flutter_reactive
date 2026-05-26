@@ -38,6 +38,7 @@ Flutter Reactive has **_zero_** external dependencies — just a plain Dart obje
 - `listen`, `unlisten`, `stream`, `notify`
 - `bind` / `unbind` to Flutter `State`
 - `ReactiveBuilder`, `ReactiveStateBuilder`
+- Shared dependencies with `ReactiveDependency`
 - Validators with `require(...)`
 - Derived state with `as`, `combine`, `combine2..combine5`, `compute`
 - Transactions with optional rollback: `Reactive.run(...)`
@@ -204,6 +205,42 @@ ReactiveStateBuilder<bool>(
     ),
   },
 );
+```
+
+## Shared Stores
+
+Use `ReactiveDependency`
+for shared stores.
+
+```dart
+class UserStore extends ReactiveDependency {
+  final name = 'Alice'.rt;
+
+  void updateName(String value) {
+    name.value = value;
+  }
+}
+```
+
+Cache a store:
+
+```dart
+final user = UserStore().dependency;
+```
+
+Reuse it later:
+
+```dart
+final sameUser = UserStore().dep;
+final found = ReactiveDependency.of<UserStore>();
+```
+
+Useful helpers:
+
+```dart
+ReactiveDependency.has<UserStore>();
+ReactiveDependency.drop<UserStore>();
+ReactiveDependency.clear();
 ```
 
 ## Validation
