@@ -73,8 +73,8 @@ We recommend to prefix all reactive variable names with a lowercase `r` to make 
 ```dart
 final rCounter = Reactive(0);         // strict mode (default)
 final rUser = ReactiveN<String>();    // nullable
-final rCount2 = 0.reactive();         // extension helper
-final rLoose = 0.reactive(false);     // non-strict: same value still notifies
+final rCount2 = 0.rt;         // extension helper
+final rLoose = 0.rtNonStrict;     // non-strict: same value still notifies
 
 rCounter.value = 1;
 rCounter.set(2);
@@ -149,7 +149,7 @@ StreamBuilder<int>(
 
 ## Widgets
 
-### ReactiveBuilder
+### ReactiveBuilder or Rxb
 
 Build a widget either by automatically tracking reactive reads, or by
 watching a specific reactive value.
@@ -163,18 +163,22 @@ watching a specific reactive value.
 ReactiveBuilder(() {
   return Text('Count: ${rCounter.value}');
 });
+// or just
+Rxb(() {
+  return Text('Count: ${rCounter.value}');
+});
 
-ReactiveBuilder.watch(
+Rxb.watch(
   rCounter,
   (value) => Text('Count: $value'),
 );
 
-ReactiveBuilder.stream(
+Rxb.stream(
   rCounter,
   (context, snapshot) => Text('Count: ${snapshot.data}'),
 );
 
-ReactiveBuilder.watch2(
+Rxb.watch2(
   rPrice,
   rQty,
   (price, qty) => Text('Total: ${price * qty}'),
@@ -206,7 +210,7 @@ ReactiveStateBuilder<bool>(
 
 ```dart
 final rCounter = 0
-    .reactive()
+    .rt
     .require((v) => v >= 0, 'Counter cannot be negative')
     .require((v) => v <= 10, 'Counter must be <= 10');
 
@@ -223,15 +227,15 @@ try {
 ### `as(...)` (single source)
 
 ```dart
-final rText = ''.reactive();
+final rText = ''.rt;
 final rLength = rText.as((text) => text.length);
 ```
 
 ### `combine(...)` and `combine2..combine5`
 
 ```dart
-final rA = 1.reactive();
-final rB = 2.reactive();
+final rA = 1.rt;
+final rB = 2.rt;
 
 final rSum = Reactive.combine2(rA, rB, (a, b) => a + b);
 // or:
@@ -241,8 +245,8 @@ final rSum2 = Reactive.combine([rA, rB], (values) => values[0] + values[1]);
 ### `compute(...)` (auto dependency tracking)
 
 ```dart
-final rPrice = 100.reactive();
-final rQty = 2.reactive();
+final rPrice = 100.rt;
+final rQty = 2.rt;
 
 final rTotal = Reactive.compute(() => rPrice.value * rQty.value);
 ```
@@ -254,7 +258,7 @@ becomes `Reactive.compute(...)`.
 ## Transactions and Rollback
 
 ```dart
-final rCounter = 0.reactive().require((v) => v >= 0, 'Must stay >= 0');
+final rCounter = 0.rt.require((v) => v >= 0, 'Must stay >= 0');
 
 await Reactive.run(() {
   rCounter.inc(5);
@@ -291,7 +295,7 @@ tx.rollback();
 ## Save and Restore State
 
 ```dart
-final rName = ''.reactive();
+final rName = ''.rt;
 
 rName.value = 'Andy';
 rName.save('step1');
@@ -364,8 +368,8 @@ rCounter.throttle(300, (value) {
 ### `State` extension
 
 - `updateState([callback])`
-- `react(initial, [strict])`
-- `reactN([initial, strict])`
+- `react<T>(T initial, [bool strict = true])`
+- `reactN<T>([T? initial, bool strict = true])`
 
 ## Optional Extra Extensions (Direct Import)
 

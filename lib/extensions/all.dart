@@ -6,12 +6,26 @@ extension ReactiveAll<T> on T {
   ///
   /// Example:
   /// ```dart
-  /// final counter = 0.reactive(); // Reactive<int>
-  /// final title = 'Hello'.reactive(); // Reactive<String>
-  /// final enabled = true.reactive(); // Reactive<bool>
-  /// final nonStrictValue = 42.reactive(false); // Reactive<int> with strict mode disabled
+  /// final counter = 0.rt; // Reactive<int>
+  /// final title = 'Hello'.rt; // Reactive<String>
+  /// final enabled = true.rt; // Reactive<bool>
   /// ```
-  Reactive<T> reactive([bool strict = true]) {
-    return Reactive(this, strict);
+  Reactive<T> get rt {
+    return Reactive(this);
+  }
+
+  /// Extension to create a [ReactiveN] wrapper for any type.
+  ReactiveN<T> get rtn {
+    return ReactiveN(this);
+  }
+
+  /// Creates a non-strict [Reactive] wrapper for this value.
+  Reactive<T> get rtNonStrict {
+    return Reactive(this, false);
+  }
+
+  /// Creates a non-strict [ReactiveN] wrapper for this value.
+  ReactiveN<T> get rtnNonStrict {
+    return ReactiveN(this, false);
   }
 }

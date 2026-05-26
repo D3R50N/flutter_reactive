@@ -175,3 +175,5 @@ class _ReactiveValueBuilderState<T> extends State<_ReactiveValueBuilder<T>> {
     return widget.builder(widget.reactive.value);
   }
 }
+
+typedef Rxb = ReactiveBuilder;

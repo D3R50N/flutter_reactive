@@ -7,8 +7,7 @@ import 'user_model.dart';
 void main() {
   group('Reactive core', () {
     test('Reactive object', () {
-      final user = UserModel('Alice', 30)
-          .reactive()
+      final user = UserModel('Alice', 30).rt
           .require((u) => u.age >= 0, 'Age cannot be negative')
           .require((u) => u.name.trim().isNotEmpty, 'Name cannot be empty');
 
@@ -33,7 +32,7 @@ void main() {
       }
     });
     test('Emit stream direclty', () async {
-      final name = 'max'.reactive();
+      final name = 'max'.rt;
       final list = name.as((n) => n.split(''));
       final t = list.transform(reverse: true);
 
@@ -49,7 +48,7 @@ void main() {
     });
 
     test('listen can emit the current value immediately', () {
-      final counter = 3.reactive();
+      final counter = 3.rt;
       final emitted = <int>[];
 
       counter.listen((value) {
@@ -62,8 +61,8 @@ void main() {
     });
 
     test('compute tracks nested dependencies and stays read-only', () {
-      final quantity = 1.reactive();
-      final price = 4.5.reactive();
+      final quantity = 1.rt;
+      final price = 4.5.rt;
       final total = Reactive.compute(
         () => Reactive.compute(() => 0) + quantity * price,
       );
@@ -82,9 +81,9 @@ void main() {
     });
 
     test('compute rebuilds dynamic dependencies when branches change', () {
-      final useA = true.reactive();
-      final a = 1.reactive();
-      final b = 10.reactive();
+      final useA = true.rt;
+      final a = 1.rt;
+      final b = 10.rt;
       final selected = Reactive.compute(() => useA.value ? a.value : b.value);
 
       expect(selected.value, 1);
@@ -103,7 +102,7 @@ void main() {
     });
 
     test('two computed values declared sequentially keep their listeners', () {
-      final source = 1.reactive();
+      final source = 1.rt;
       final a = Reactive.compute(() => source.value * 2);
       final b = Reactive.compute(() => a.value + 1);
       final aEmitted = <int>[];
@@ -126,11 +125,11 @@ void main() {
     });
 
     test('combine5 updates from all sources and is read-only', () {
-      final drink = 'Latte'.reactive();
-      final qty = 1.reactive();
-      final member = false.reactive();
-      final rush = false.reactive();
-      final note = ''.reactive();
+      final drink = 'Latte'.rt;
+      final qty = 1.rt;
+      final member = false.rt;
+      final rush = false.rt;
+      final note = ''.rt;
 
       final summary = Reactive.combine5(drink, qty, member, rush, note, (
         drink,
@@ -154,11 +153,11 @@ void main() {
     });
 
     test('transactions support rollback and manual rollback', () async {
-      final stock = <String, int>{'Latte': 3}.reactive().require(
+      final stock = <String, int>{'Latte': 3}.rt.require(
         (value) => value.values.every((entry) => entry >= 0),
         'Stock cannot go negative',
       );
-      final sold = <String>[].reactive(false);
+      final sold = <String>[].rtNonStrict;
 
       await Reactive.run(() {
         stock.put('Latte', stock.get('Latte')! - 2);
@@ -191,10 +190,10 @@ void main() {
     });
 
     test('save restore and helper extensions behave as expected', () async {
-      final note = '  latte  '.reactive();
-      final queue = <int>[2, 5, 1].reactive(false);
-      final stock = <String, int>{'Latte': 2}.reactive();
-      final counter = 0.reactive();
+      final note = '  latte  '.rt;
+      final queue = <int>[2, 5, 1].rtNonStrict;
+      final stock = <String, int>{'Latte': 2}.rt;
+      final counter = 0.rt;
       var whenHits = 0;
 
       counter.when((value) => value == 2, (_) {
@@ -231,12 +230,11 @@ void main() {
       await counter.setAsync(Future.value(7));
       expect(counter.value, 7);
     });
-
   });
 
   group('Reactive widgets', () {
     testWidgets('ReactiveBuilder auto-tracks reactive reads', (tester) async {
-      final counter = 0.reactive();
+      final counter = 0.rt;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -259,8 +257,8 @@ void main() {
     testWidgets('ReactiveBuilder.watch2 rebuilds from both sources', (
       tester,
     ) async {
-      final drink = 'Latte'.reactive();
-      final qty = 1.reactive();
+      final drink = 'Latte'.rt;
+      final qty = 1.rt;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -286,7 +284,7 @@ void main() {
     testWidgets('ReactiveBuilder.stream exposes a StreamBuilder', (
       tester,
     ) async {
-      final counter = 2.reactive();
+      final counter = 2.rt;
 
       await tester.pumpWidget(
         MaterialApp(

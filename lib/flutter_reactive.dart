@@ -4,7 +4,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive/extensions/state.dart';
 import 'package:flutter_reactive/widgets/reactive_builder.dart';
 
 export 'extensions/all.dart';
@@ -12,7 +11,6 @@ export 'extensions/bool.dart';
 export 'extensions/iterable.dart';
 export 'extensions/map.dart';
 export 'extensions/num.dart';
-export 'extensions/state.dart';
 export 'extensions/string.dart';
 export 'widgets/reactive_builder.dart';
 export 'widgets/state_builder.dart';
@@ -21,6 +19,7 @@ part 'core/transaction.dart';
 part 'core/transaction_manager.dart';
 part 'core/validator.dart';
 part 'flutter_reactive_n.dart';
+part 'extensions/state.dart';
 
 typedef _ReactiveListener<T> = void Function(T value);
 
@@ -36,7 +35,7 @@ typedef _ReactiveListener<T> = void Function(T value);
 ///
 /// Typical use case:
 /// ```dart
-/// late final counter = reactive(0);
+/// late final counter = Reactive(0);
 ///
 /// counter.value++;
 /// ```
@@ -281,6 +280,13 @@ class Reactive<T> {
   /// Removes a previously registered listener.
   void unlisten(_ReactiveListener<T> callback) => _listeners.remove(callback);
 
+  void _bind(State state, [bool emitInitial = true]) {
+    if (!_boundStates.contains(state)) {
+      _boundStates.add(state);
+      if (emitInitial) state.updateState(); // sync UI immediately
+    }
+  }
+
   /// Binds a Flutter [State] to this reactive.
   ///
   /// When the value changes, `setState()` will automatically
@@ -291,10 +297,7 @@ class Reactive<T> {
   /// counter.bind(this);
   /// ```
   void bind(State state) {
-    if (!_boundStates.contains(state)) {
-      _boundStates.add(state);
-      state.updateState(); // sync UI immediately
-    }
+    _bind(state);
   }
 
   /// Unbinds a previously bound [State].
@@ -386,8 +389,8 @@ class Reactive<T> {
   ///
   /// Example:
   /// ```dart
-  /// final a = 1.reactive();
-  /// final b = 2.reactive();
+  /// final a = 1.rt;
+  /// final b = 2.rt;
   ///
   /// final sum = Reactive.combine2(a, b, (x, y) => x + y);
   /// ```
@@ -412,9 +415,9 @@ class Reactive<T> {
   ///
   /// Example:
   /// ```dart
-  /// final counter = 0.reactive();
-  /// final name = 'Andy'.reactive();
-  /// final visible = true.reactive();
+  /// final counter = 0.rt;
+  /// final name = 'Andy'.rt;
+  /// final visible = true.rt;
   ///
   /// final text = Reactive.combine3(
   ///   counter,

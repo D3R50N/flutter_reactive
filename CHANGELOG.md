@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3
+
+- Added `Rxb` alias for `ReactiveBuilder` to simplify usage and reduce boilerplate in widget builders
+- Changed `.reactive()` extension to a simpler `.rt` and added `.rtNonStrict` for non-strict mode reactive creation. Same for nullable version with `.rtN` and `.rtNNonStrict`
+- Fixed `react` and `reactN` extensions to avoid emitting initial value on bind, preventing unnecessary widget rebuilds on initial state setup
+
 ## 1.0.2
 
 - Fixed `Reactive.compute(...)` dependency retracking so dynamic and nested computed values keep working after updates

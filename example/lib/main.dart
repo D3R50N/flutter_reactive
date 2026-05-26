@@ -44,33 +44,28 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
   int _nextTicketId = 1;
   late final TextEditingController _noteController;
 
-  late final Reactive<String> selectedDrink = 'Latte'.reactive();
-  late final Reactive<int> quantity = 1
-      .reactive()
+  late final Reactive<String> selectedDrink = 'Latte'.rt;
+  late final Reactive<int> quantity = 1.rt
       .require((value) => value > 0, 'Quantity must be at least 1')
       .require((value) => value <= 6, 'Quantity is capped at 6 per ticket');
-  late final Reactive<bool> isMember = false.reactive();
-  late final Reactive<bool> rushMode = false.reactive();
-  late final Reactive<String> customerNote = ''.reactive();
-  late final Reactive<String> queueFilter = 'all'.reactive();
-  late final Reactive<String> savedDraftLabel = 'Draft: none'.reactive(false);
-  late final Reactive<String> serviceSignal = 'Counter ready'.reactive(false);
-  late final Reactive<int> serviceSignalHits = 0.reactive(false);
-  late final Reactive<List<String>> activityLog = <String>[].reactive(false);
+  late final Reactive<bool> isMember = false.rt;
+  late final Reactive<bool> rushMode = false.rt;
+  late final Reactive<String> customerNote = ''.rt;
+  late final Reactive<String> queueFilter = 'all'.rt;
+  late final Reactive<String> savedDraftLabel = 'Draft: none'.rtNonStrict;
+  late final Reactive<String> serviceSignal = 'Counter ready'.rtNonStrict;
+  late final Reactive<int> serviceSignalHits = 0.rtNonStrict;
+  late final Reactive<List<String>> activityLog = <String>[].rtNonStrict;
   late final Reactive<Map<String, int>> stockByDrink = <String, int>{
-        'Espresso': 14,
-        'Latte': 9,
-        'Matcha': 7,
-        'Cookie': 18,
-      }
-      .reactive(false)
-      .require(
-        (stock) => stock.values.every((value) => value >= 0),
-        'Stock cannot go negative',
-      );
-  late final Reactive<List<OrderTicket>> tickets = <OrderTicket>[].reactive(
-    false,
+    'Espresso': 14,
+    'Latte': 9,
+    'Matcha': 7,
+    'Cookie': 18,
+  }.rtNonStrict.require(
+    (stock) => stock.values.every((value) => value >= 0),
+    'Stock cannot go negative',
   );
+  late final Reactive<List<OrderTicket>> tickets = <OrderTicket>[].rtNonStrict;
 
   late final Reactive<double> unitPrice = Reactive.compute(
     () => _menuPrices[selectedDrink.value]!,
@@ -347,7 +342,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: ReactiveBuilder(() {
+              child: Rxb(() {
                 final nextTicket = openTickets.atOrNull(0);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,7 +382,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
-                  ReactiveBuilder.watch(
+                  Rxb.watch(
                     selectedDrink,
                     (drink) => DropdownButtonFormField<String>(
                       value: drink,
@@ -425,7 +420,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                         child: const Text('-'),
                       ),
                       const SizedBox(width: 12),
-                      ReactiveBuilder.watch(quantity, (value) {
+                      Rxb.watch(quantity, (value) {
                         return Text(
                           'Quantity: $value',
                           style: Theme.of(context).textTheme.titleMedium,
@@ -448,7 +443,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  ReactiveBuilder.watch2(isMember, rushMode, (member, rush) {
+                  Rxb.watch2(isMember, rushMode, (member, rush) {
                     return Wrap(
                       spacing: 12,
                       runSpacing: 12,
@@ -519,7 +514,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  ReactiveBuilder.watch(savedDraftLabel, (value) {
+                  Rxb.watch(savedDraftLabel, (value) {
                     return Text(value);
                   }),
                 ],
@@ -538,15 +533,15 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
-                  ReactiveBuilder.watch(selectedDrink, (drink) {
+                  Rxb.watch(selectedDrink, (drink) {
                     return Text('watch: $drink selected');
                   }),
                   const SizedBox(height: 6),
-                  ReactiveBuilder.watch2(selectedDrink, quantity, (drink, qty) {
+                  Rxb.watch2(selectedDrink, quantity, (drink, qty) {
                     return Text('watch2: $qty x $drink');
                   }),
                   const SizedBox(height: 6),
-                  ReactiveBuilder.watch3(selectedDrink, quantity, isMember, (
+                  Rxb.watch3(selectedDrink, quantity, isMember, (
                     drink,
                     qty,
                     member,
@@ -556,7 +551,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     );
                   }),
                   const SizedBox(height: 6),
-                  ReactiveBuilder.watch4(
+                  Rxb.watch4(
                     selectedDrink,
                     quantity,
                     rushMode,
@@ -568,7 +563,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     },
                   ),
                   const SizedBox(height: 6),
-                  ReactiveBuilder.watch5(
+                  Rxb.watch5(
                     selectedDrink,
                     quantity,
                     isMember,
@@ -597,7 +592,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  ReactiveBuilder.watch2(stockByDrink, serviceSignal, (
+                  Rxb.watch2(stockByDrink, serviceSignal, (
                     stock,
                     signal,
                   ) {
@@ -661,7 +656,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  ReactiveBuilder(() {
+                  Rxb(() {
                     return Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -700,7 +695,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  ReactiveBuilder(() {
+                  Rxb(() {
                     final visible = _visibleTickets();
                     if (visible.isEmpty) {
                       return const Text('No tickets for this filter.');
@@ -758,7 +753,7 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 240,
-                    child: ReactiveBuilder.watch(activityLog, (items) {
+                    child: Rxb.watch(activityLog, (items) {
                       if (items.isEmpty) {
                         return const Center(child: Text('No events yet.'));
                       }

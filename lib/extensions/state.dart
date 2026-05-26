@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_reactive/flutter_reactive.dart';
+part of 'package:flutter_reactive/flutter_reactive.dart';
 
 /// Extension on Flutter's [State] to simplify Reactive usage.
 extension ReactiveState on State {
@@ -39,13 +38,13 @@ extension ReactiveState on State {
   /// ```
   Reactive<T> react<T>(T initial, [bool strict = true]) {
     final r = Reactive<T>(initial, strict);
-    r.bind(this);
+    r._bind(this, false); // don't emit initial value to avoid unnecessary build
     return r;
   }
 
   ReactiveN<T> reactN<T>([T? initial, bool strict = true]) {
     final r = ReactiveN<T>(initial, strict);
-    r.bind(this);
+    r._bind(this, false); // don't emit initial value to avoid unnecessary build
     return r;
   }
 }
