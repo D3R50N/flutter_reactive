@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive/flutter_reactive.dart';
 
+/// A lightweight state-switching widget backed by an internal [Reactive].
+///
+/// It maps values of type [T] to widget builders through [states] and rebuilds
+/// automatically whenever the internal reactive state changes.
 class ReactiveStateBuilder<T> extends StatefulWidget {
+  /// Creates a [ReactiveStateBuilder].
   const ReactiveStateBuilder({
     super.key,
     this.states = const {},
@@ -9,8 +14,15 @@ class ReactiveStateBuilder<T> extends StatefulWidget {
     this.onInit,
   });
 
+  /// The initial value for the internal reactive state.
   final T initialState;
+
+  /// Called once during initialization with the internal reactive state.
+  ///
+  /// This is useful for wiring listeners or triggering asynchronous setup.
   final void Function(Reactive<T> reactive)? onInit;
+
+  /// Maps each possible state value to the widget builder that should render it.
   final Map<T, Widget Function(Reactive<T> reactive)> states;
 
   @override

@@ -15,11 +15,12 @@ export 'extensions/string.dart';
 export 'widgets/reactive_builder.dart';
 export 'widgets/state_builder.dart';
 
+part 'core/reactive_subscription.dart';
 part 'core/transaction.dart';
 part 'core/transaction_manager.dart';
 part 'core/validator.dart';
-part 'flutter_reactive_n.dart';
 part 'extensions/state.dart';
+part 'flutter_reactive_n.dart';
 
 typedef _ReactiveListener<T> = void Function(T value);
 
@@ -186,38 +187,74 @@ class Reactive<T> {
 
   /// Debounces value change notifications.
   ///
-  void debounce(int milliseconds, _ReactiveListener<T> callback) {
+  ReactiveSubscription<T> debounce(int milliseconds, _ReactiveListener<T> callback) {
     Timer? timer;
-    listen((value) {
+   final sub = listen((value) {
       timer?.cancel();
       timer = Timer(Duration(milliseconds: milliseconds), () {
         callback(value);
       });
-    });
+    }).._onCancel = () => timer?.cancel();
+    return sub;
   }
 
   /// Throttle value change notifications.
-  void throttle(int milliseconds, _ReactiveListener<T> callback) {
+  ReactiveSubscription<T> throttle(
+    int milliseconds,
+    _ReactiveListener<T> callback,
+  ) {
     Timer? timer;
-    listen((value) {
+    final sub = listen((value) {
       if (timer == null) {
         callback(value);
         timer = Timer(Duration(milliseconds: milliseconds), () => timer = null);
       }
-    });
+    }).._onCancel = () => timer?.cancel();
+    return sub;
   }
 
   /// Triggers an action when a condition is met.
   /// The [condition] is evaluated on every value change, and when it returns true,
   /// the [action] is executed with the current value.
-  void when(bool Function(T value) condition, void Function(T value) action) {
-    listen((value) {
+  ReactiveSubscription<T> when(
+    bool Function(T value) condition,
+    void Function(T value) action,
+  ) {
+    return listen((value) {
       if (condition(value)) {
         action(value);
       }
     });
   }
 
+
+  /// Adds a listener that will be called on every value change.
+  ///
+  /// Listeners are value-based and **do not trigger UI rebuilds**
+  /// unless you explicitly bind a [State].
+  ///
+  /// If [emitInitial] is true, the callback is also invoked right away
+  /// with the current value.
+  ReactiveSubscription<T> listen(
+    _ReactiveListener<T> callback, [
+    bool emitInitial = false,
+  ]) {
+    return ReactiveSubscription<T>(this, callback, emitInitial: emitInitial);
+  }
+
+  /// Adds a one-time listener that automatically unlistens after the first invocation.
+  ReactiveSubscription<T> once(
+    _ReactiveListener<T> callback, [
+    bool emitInitial = false,
+  ]) {
+    void wrapper(T value) {
+      callback(value);
+      unlisten(wrapper);
+    }
+
+    return listen(wrapper, emitInitial);
+  }
+  
   /// Notifies both bound states, listeners and stream.
   void notify() {
     _notifyStreams();
@@ -250,22 +287,6 @@ class Reactive<T> {
     }
   }
 
-  /// Adds a listener that will be called on every value change.
-  ///
-  /// Listeners are value-based and **do not trigger UI rebuilds**
-  /// unless you explicitly bind a [State].
-  ///
-  /// If [emitInitial] is true, the callback is also invoked right away
-  /// with the current value.
-  void listen(_ReactiveListener<T> callback, [bool emitInitial = false]) {
-    if (!_listeners.contains(callback)) {
-      _listeners.add(callback);
-    }
-
-    if (emitInitial) {
-      callback(value);
-    }
-  }
 
   /// Dispose everything when done.
   void dispose() {

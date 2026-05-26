@@ -42,6 +42,9 @@ extension ReactiveState on State {
     return r;
   }
 
+  /// Creates a nullable [ReactiveN] and binds it automatically to this state.
+  ///
+  /// Like [react], it avoids triggering an extra initial rebuild.
   ReactiveN<T> reactN<T>([T? initial, bool strict = true]) {
     final r = ReactiveN<T>(initial, strict);
     r._bind(this, false); // don't emit initial value to avoid unnecessary build

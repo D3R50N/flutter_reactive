@@ -2,10 +2,16 @@ import 'package:flutter_reactive/flutter_reactive.dart';
 
 /// Extension for [Reactive<Iterable<T>>] providing common list utilities.
 extension ReactiveIterable<T> on Reactive<Iterable<T>> {
+  /// Returns the first element.
   T get first => value.first;
+
+  /// Returns the first element, or `null` if the iterable is empty.
   T? get firstOrNull => value.firstOrNull;
 
+  /// Returns the last element.
   T get last => value.last;
+
+  /// Returns the last element, or `null` if the iterable is empty.
   T? get lastOrNull => value.lastOrNull;
 
   /// Returns true if the list is empty.
@@ -17,11 +23,12 @@ extension ReactiveIterable<T> on Reactive<Iterable<T>> {
   /// Returns the length of the list.
   int get length => value.length;
 
-  /// The value to list
+  /// Returns the current iterable as a new [List].
   List<T> toList() {
     return value.toList();
   }
 
+  /// Applies [action] to each element of the current iterable.
   void forEach(void Function(T e) action) {
     value.forEach(action);
   }
@@ -104,20 +111,23 @@ extension ReactiveIterable<T> on Reactive<Iterable<T>> {
     return r;
   }
 
+  /// Returns the element at [index].
   T operator [](int index) {
     return value.elementAt(index);
   }
 
-  /// Returns the element at
+  /// Returns the element at [index].
   T at(int index) {
     return value.elementAt(index);
   }
 
+  /// Returns the element at [index], or `null` if out of range.
   T? atOrNull(int index) {
     return value.elementAtOrNull(index);
   }
 }
 
+/// Extension for [Reactive<List<T>>] providing immutable-style list updates.
 extension ReactiveList<T> on Reactive<List<T>> {
   /// Adds [item] to the end of the list.
   void add(T item) => value = [...value, item];
@@ -160,10 +170,12 @@ extension ReactiveList<T> on Reactive<List<T>> {
     value = list;
   }
 
+  /// Returns the element at [index].
   T operator [](int index) {
     return value[index];
   }
 
+  /// Replaces the element at index [i] with [v] and notifies listeners.
   void operator []=(int i, T v) {
     value[i] = v;
     notify();

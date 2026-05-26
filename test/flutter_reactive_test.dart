@@ -6,6 +6,36 @@ import 'user_model.dart';
 
 void main() {
   group('Reactive core', () {
+    test('ReactiveSubscription', () {
+      final counter = 0.rt;
+      var calls = 0;
+
+      final sub = counter.listen((value) {
+        calls++;
+      });
+
+      counter.increment();
+      expect(calls, 1);
+
+      sub.cancel();
+      counter.increment();
+      expect(calls, 1);
+      expect(sub.currentValue, 2);
+    });
+    test('One-time reactions with once()', () {
+      final counter = 0.rt;
+      var calls = 0;
+
+      counter.once((value) {
+        calls++;
+      });
+
+      counter.increment();
+      expect(calls, 1);
+
+      counter.increment();
+      expect(calls, 1);
+    });
     test('Reactive object', () {
       final user = UserModel('Alice', 30).rt
           .require((u) => u.age >= 0, 'Age cannot be negative')

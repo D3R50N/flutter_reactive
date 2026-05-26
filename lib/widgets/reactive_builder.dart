@@ -176,4 +176,5 @@ class _ReactiveValueBuilderState<T> extends State<_ReactiveValueBuilder<T>> {
   }
 }
 
+/// Shorthand alias for [ReactiveBuilder].
 typedef Rxb = ReactiveBuilder;
