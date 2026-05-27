@@ -4,12 +4,11 @@
 
 - Added `ReactiveDependency` for cached shared stores and dependencies
 - Added `.dependency` and `.dep` extensions for simple dependency reuse
-- Added `Rxb` alias for `ReactiveBuilder` to simplify usage and reduce boilerplate in widget builders
+- Added `Rxb` alias for `ReactiveBuilder`, `Rxsb` for `ReactiveStateBuilder`, and `RxDep` for `ReactiveDependency`
 - Changed `.reactive()` extension to a simpler `.rt` and added `.rtNonStrict` for non-strict mode reactive creation. Same for nullable version with `.rtN` and `.rtNNonStrict`
-_ Added `.once(callback)` method to `Reactive` for one-time reactions that automatically unsubscribe after the first trigger
+  \_ Added `.once(callback)` method to `Reactive` for one-time reactions that automatically unsubscribe after the first trigger
 - All subscription methods (`listen`, `debounce`, `throttle`, `once`) now return a `ReactiveSubscription` object with an explicit `cancel()` method for better subscription management and cleanup
 - Fixed `react` and `reactN` extensions to avoid emitting initial value on bind, preventing unnecessary widget rebuilds on initial state setup
-
 
 ## 1.0.2
 

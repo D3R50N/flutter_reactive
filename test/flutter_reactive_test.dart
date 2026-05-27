@@ -16,7 +16,7 @@ void main() {
       expect(store2.name.value, 'Bob');
 
       store.dispose();
-      expect(() => ReactiveDependency.of<UserStore>(), throwsException);
+      expect(() => RxDep.of<UserStore>(), throwsException);
 
       final store3 = UserStore().dep;
       expect(store3.name.value, 'Alice');

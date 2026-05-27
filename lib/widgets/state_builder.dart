@@ -58,3 +58,6 @@ class _ReactiveStateBuilderState<T> extends State<ReactiveStateBuilder<T>> {
     });
   }
 }
+
+/// Shorthand alias for [ReactiveStateBuilder]
+typedef Rxsb = ReactiveStateBuilder;

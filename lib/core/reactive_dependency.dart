@@ -1,9 +1,13 @@
 part of 'package:flutter_reactive/flutter_reactive.dart';
 
+/// A lightweight dependency registry.
+///
+/// Use it to cache and reuse
+/// stores or shared services.
 class ReactiveDependency {
   static final Map<Type, dynamic> _dependencies = {};
 
-  /// Disposes the dependencyd instance of type [T], if it exists.
+  /// Disposes the dependency instance of type [T], if it exists.
   @nonVirtual
   void dispose() {
     _dependencies.remove(runtimeType);
@@ -16,7 +20,7 @@ class ReactiveDependency {
   /// Override this method to perform cleanup logic when the dependency is disposed. Do not call this method directly; it will be called automatically when the dependency is disposed.
   void onDispose() {}
 
-  /// Clears all dependencyd instances. Useful for testing or resetting state.
+  /// Clears all dependencies.
   static void clear() {
     _dependencies.clear();
   }
@@ -55,8 +59,9 @@ class ReactiveDependency {
   }
 }
 
+/// Adds cache helpers.
 extension ReactiveDependencyExtension<T> on T {
-  /// Retrieves the dependencyd instance of type [T], or creates and dependencys a new one if it doesn't exist.
+  /// Retrieves the dependency instance of type [T], or creates and registers a new one if it doesn't exist.
   T get dependency {
     if (ReactiveDependency.has<T>()) {
       return ReactiveDependency.of<T>();
@@ -68,6 +73,9 @@ extension ReactiveDependencyExtension<T> on T {
     return dep;
   }
 
-  /// Alias for [dependency]
+  /// Alias for [dependency].
   T get dep => dependency;
 }
+
+/// Shorthand alias for [ReactiveDependency]
+typedef RxDep = ReactiveDependency;

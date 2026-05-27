@@ -38,7 +38,7 @@ Flutter Reactive has **_zero_** external dependencies — just a plain Dart obje
 - `listen`, `unlisten`, `stream`, `notify`
 - `bind` / `unbind` to Flutter `State`
 - `ReactiveBuilder`, `ReactiveStateBuilder`
-- Shared dependencies with `ReactiveDependency`
+- Shared dependencies with `ReactiveDependency` or `RxDep` alias
 - Validators with `require(...)`
 - Derived state with `as`, `combine`, `combine2..combine5`, `compute`
 - Transactions with optional rollback: `Reactive.run(...)`
@@ -150,7 +150,7 @@ StreamBuilder<int>(
 
 ## Widgets
 
-### ReactiveBuilder or Rxb
+### ReactiveBuilder (or Rxb)
 
 Build a widget either by automatically tracking reactive reads, or by
 watching a specific reactive value.
@@ -189,10 +189,10 @@ Rxb.watch2(
 rCounter.build((value) => Text('Count: $value'));
 ```
 
-### ReactiveStateBuilder
+### ReactiveStateBuilder (or Rxsb)
 
 ```dart
-ReactiveStateBuilder<bool>(
+Rxsb<bool>(
   initialState: false,
   states: {
     true: (reactive) => ElevatedButton(
@@ -207,13 +207,14 @@ ReactiveStateBuilder<bool>(
 );
 ```
 
-## Shared Stores
+## Shared Dependencies
 
-Use `ReactiveDependency`
-for shared stores.
+Use `ReactiveDependency` or `RxDep` alias (or `RxDep`) for shared stores or dependencies that you want to reuse across your app without manually passing them around.
+
+It works with a caching mechanism so be sure to call `dispose()` when you no longer need the instance, or use `ReactiveDependency` or `RxDep`  `.drop<Type>()` to remove it.
 
 ```dart
-class UserStore extends ReactiveDependency {
+class UserStore {
   final name = 'Alice'.rt;
 
   void updateName(String value) {
@@ -225,14 +226,37 @@ class UserStore extends ReactiveDependency {
 Cache a store:
 
 ```dart
-final user = UserStore().dependency;
+final user = UserStore().dependency; // or RxDep.use(() => UserStore());
 ```
 
 Reuse it later:
 
 ```dart
-final sameUser = UserStore().dep;
-final found = ReactiveDependency.of<UserStore>();
+final sameUser = UserStore().dep; // shorthand for .dependency
+final found = RxDep.of<UserStore>();
+```
+
+In order to use `onCreate` and `onDispose` lifecycle hooks of `ReactiveDependency` or `RxDep`, create a custom dependency class:
+
+```dart
+class UserStore extends ReactiveDependency {
+  final name = 'Alice'.rt;
+
+  @override
+  void onCreate() {
+    debugPrint('UserStore created');
+  }
+  @override
+  void onDispose() {
+    debugPrint('UserStore disposed');
+  }
+}
+
+final user = UserStore().dep; // onCreate is called here
+final sameUser = UserStore().dep; // returns cached instance, onCreate is NOT called again
+
+RxDep.drop<UserStore>(); // onDispose is called here
+user.dispose(); // also calls onDispose, but the instance is already removed from cache
 ```
 
 Useful helpers:
