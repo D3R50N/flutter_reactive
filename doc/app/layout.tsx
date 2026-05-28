@@ -1,27 +1,26 @@
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { ThemeProvider } from '@/components/theme-provider'
-import { Sidebar } from '@/components/docs/sidebar'
-import { Header } from '@/components/docs/header'
-import './globals.css'
+import { Header } from "@/components/docs/header";
+import { Sidebar } from "@/components/docs/sidebar";
+import { ThemeProvider } from "@/components/theme-provider";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Flutter Reactive - Documentation',
-  description: 'Official Flutter Reactive documentation for a lightweight reactive system for Flutter.',
-  generator: 'v0.app',
+  title: "Flutter Reactive - Documentation",
+  description:
+    "Official Flutter Reactive documentation for a lightweight reactive system for Flutter.",
   icons: {
-    icon: '/logo.svg',
+    icon: "/logo.svg",
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -42,8 +41,7 @@ export default function RootLayout({
             </div>
           </div>
         </ThemeProvider>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
-  )
+  );
 }
