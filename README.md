@@ -1,9 +1,27 @@
 # Flutter Reactive
 
 Flutter Reactive is a lightweight reactive state package for Flutter.
-It gives you local and shared state, derived values, and widget bindings without codegen or external dependencies.
+It gives you local widget state, shared stores, derived values, and automatic rebuilds — without code generation or extra boilerplate.
 
-<img src="logo.svg" width="300" alt="Flutter Reactive logo"/>
+<p align="center">
+  <img src="logo.svg" width="280" alt="Flutter Reactive logo" />
+</p>
+
+## Documentation
+
+- Official docs: <https://flutterreactive.com>
+- Docs source: [doc/](doc/)
+- Source and examples: [example/](example/)
+
+## Features
+
+- Observable values with `Reactive<T>` and `ReactiveN<T>`
+- Local widget state with `react()` and `reactN()`
+- Automatic rebuilds with `ReactiveBuilder` and `ReactiveStateBuilder`
+- Shared stores with `ReactiveDependency` and `RxDep`
+- Derived values with `as`, `compute`, and `combine`
+- Transactions, validators, save/restore checkpoints, and stream listeners
+- Helper extensions for numbers, booleans, strings, iterables, lists, and maps
 
 ## Installation
 
@@ -18,139 +36,212 @@ import 'package:flutter_reactive/flutter_reactive.dart';
 ## Quick Start
 
 ```dart
-final counter = Reactive(0);
+class CounterPage extends StatefulWidget {
+  const CounterPage({super.key});
 
-counter.value = 1;
-counter.set(2);
-counter.update((value) => value + 1);
-await counter.setAsync(Future.value(10));
-```
+  @override
+  State<CounterPage> createState() => _CounterPageState();
+}
 
-Use the `rt` and `rtNonStrict` extensions when you want shorter syntax:
-
-```dart
-final rCount = 0.rt;
-final rLoose = 0.rtNonStrict;
-final rName = ReactiveN<String>();
-```
-
-## Bind To A Widget
-
-```dart
-class _MyPageState extends State<MyPage> {
+class _CounterPageState extends State<CounterPage> {
   late final counter = react(0);
 
   @override
   Widget build(BuildContext context) {
-    return Text('Counter: ${counter.value}');
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text('Counter: ${counter.value}'),
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: counter.increment,
+          child: const Text('Increment'),
+        ),
+      ],
+    );
   }
 }
 ```
 
-Or bind manually:
+`react()` creates a `Reactive<T>` and binds it to the current `State`, so updates trigger `setState()` automatically.
+
+## Widget Binding
+
+Use `ReactiveBuilder` when you want a widget to rebuild from reactive reads:
 
 ```dart
-final counter = Reactive(0);
-
-@override
-void initState() {
-  super.initState();
-  counter.bind(this);
-}
-
-@override
-void dispose() {
-  counter.unbind(this);
-  super.dispose();
-}
+ReactiveBuilder(() {
+  return Text('Counter: ${counter.value}');
+});
 ```
 
-## Core Features
-
-- `listen`, `unlisten`, `stream`, and `notify`
-- `ReactiveBuilder` / `Rxb` and `ReactiveStateBuilder` / `Rxsb`
-- Shared dependencies with `ReactiveDependency` and `RxDep`
-- Validation with `require(...)`
-- Derived state with `as`, `combine`, and `compute`
-- Transactions with optional rollback via `Reactive.run(...)`
-- Save and restore checkpoints with `save`, `restore`, `unsave`, and `unsaveAll`
-- Helpers such as `debounce`, `throttle`, `when`, `setAsync`, and `mutate`
-- Extensions for `bool`, `num`, `String`, `Iterable`, `List`, `Map`, and `State`
-
-## Listeners And Streams
+Or watch a specific reactive explicitly:
 
 ```dart
-void onCounterChanged(int value) {
-  debugPrint('Counter changed: $value');
-}
-
-final sub = counter.listen(onCounterChanged);
-counter.listen(onCounterChanged, true);
-counter.unlisten(onCounterChanged); // or sub.cancel();
-
-counter.stream.listen((value) {
-  debugPrint('Stream value: $value');
+ReactiveBuilder.watch(counter, (value) {
+  return Text('Counter: $value');
 });
+```
+
+`ReactiveBuilder.stream(...)` is also available when you prefer Flutter's `StreamBuilder` API.
+
+For local widget state machines, use `ReactiveStateBuilder`:
+
+```dart
+ReactiveStateBuilder<bool>(
+  initialState: false,
+  states: {
+    false: (state) => ElevatedButton(
+      onPressed: state.enable,
+      child: const Text('Open'),
+    ),
+    true: (state) => ElevatedButton(
+      onPressed: state.disable,
+      child: const Text('Close'),
+    ),
+  },
+);
 ```
 
 ## Derived State
 
 ```dart
 final price = 100.rt;
-final qty = 2.rt;
+final quantity = 2.rt;
 
-final total = Reactive.compute(() => price.value * qty.value);
-final label = price.as((value) => '\$${value.toStringAsFixed(0)}');
+final total = Reactive.compute(() => price.value * quantity.value);
+final label = total.as((value) => 'Total: \$${value.toStringAsFixed(0)}');
+
+final summary = Reactive.combine2(
+  price,
+  quantity,
+  (p, q) => '$q × \$${p.toStringAsFixed(0)}',
+);
 ```
 
-`compute` and `combine*` return read-only reactives.
+`compute`, `combine`, and the typed helpers (`combine2` to `combine5`) return read-only reactives. Trying to set a value on them throws a state error.
+
+## Side Effects
+
+```dart
+final counter = 0.rt;
+
+final sub = counter.listen((value) {
+  debugPrint('Counter changed: $value');
+}, true);
+
+sub.cancel(); // Unsubscribe when no longer needed
+
+counter.once((value) {
+  debugPrint('First value: $value');
+});
+
+counter.when((value) => value == 10, (value) {
+  debugPrint('Reached $value');
+});
+```
+
+`listen` works independently from the widget tree. It is useful for logging, syncing, analytics, or imperative side effects.
 
 ## Shared Dependencies
 
 ```dart
 class UserStore extends ReactiveDependency {
   final name = 'Alice'.rt;
+
+  void rename(String value) => name.value = value;
 }
 
-final user = UserStore().dep;
-final sameUser = UserStore().dep;
-RxDep.drop<UserStore>();
+final store = UserStore().dep;
+store.rename('Bob');
+store.dispose();
 ```
 
-## Validation
+`dep` registers a single instance per type, which makes it convenient for shared stores and service-like objects.
+
+## Mutable Models
 
 ```dart
-final counter = 0
-    .rt
-    .require((value) => value >= 0, 'Counter cannot be negative')
-    .require((value) => value <= 10, 'Counter must be <= 10');
-```
+class User {
+  User(this.name, this.age);
 
-## Transactions
+  String name;
+  int age;
+}
 
-```dart
-await Reactive.run(() {
-  counter.inc(5);
-  counter.dec(2);
+final user = User('Alice', 30).rt
+    .require((value) => value.age >= 0, 'Age cannot be negative')
+    .require((value) => value.name.trim().isNotEmpty, 'Name cannot be empty');
+
+user.mutate((value) {
+  value.name = 'Bob';
+  value.age = 31;
 });
 ```
 
-Rollback happens automatically when an error is thrown. You can also disable rollback and handle it manually with the returned transaction.
+Use `mutate` when you intentionally update an object in place. For immutable updates, prefer assigning a new value instead.
+
+## Transactions, Validation, and Checkpoints
+
+```dart
+final stock = <String, int>{'Latte': 3}.rt;
+final sold = <String>[].rtNonStrict;
+
+await Reactive.run(() {
+  stock.put('Latte', stock.get('Latte')! - 2);
+  sold.add('ticket-1');
+});
+```
+
+If an error is thrown, changes are rolled back by default. You can also disable automatic rollback and handle it manually through the returned transaction.
+
+Save and restore checkpoints when you want lightweight state snapshots:
+
+```dart
+final counter = 0.rt;
+
+counter.save('draft');
+counter.increment(5);
+counter.restore('draft');
+```
+
+## Collection And Primitive Helpers
+
+`flutter_reactive.dart` exports helpers for common reactive data types:
+
+- `num`: `increment`, `decrement`, `inc`, `dec`, `clamp`, `roundTo`
+- `bool`: `toggle`, `enable`, `disable`
+- `String`: `trim`, `append`, `prepend`, `toUpper`, `toLower`
+- `Iterable` / `List`: `add`, `addFirst`, `addAll`, `remove`, `sort`, `transform`, `at`, `atOrNull`
+- `Map`: `put`, `remove`, `get`, `has`
+
+A quick example:
+
+```dart
+final name = ' Flutter '.rt;
+name.trim();
+name.toUpper();
+name.append(' Reactive');
+
+final items = <int>[2, 5, 1].rtNonStrict;
+items.addFirst(9);
+items.sort();
+
+final settings = <String, dynamic>{}.rt;
+settings.put('theme', 'dark');
+```
 
 ## Best Practices
 
-- Prefer immutable updates when possible.
-- Use strict mode for predictable change detection.
-- Use non-strict mode when repeated equal values should still notify listeners.
-- Dispose long-lived reactives when they are no longer needed.
-
-## Breaking Changes In 1.0.0
-
-- `ReactiveBuilder(reactive: ..., builder: ...)` is no longer the main API.
-- `Reactive.computed(...)` became `Reactive.compute(...)`.
-- `listen(callback, true)` emits the current value immediately.
-- `extensions/list.dart` became `extensions/iterable.dart`.
+- Prefer immutable updates whenever possible.
+- Use `rtNonStrict` for mutable collections or repeated equal values that should still notify listeners.
+- Use `mutate` only when in-place mutation is intentional.
+- Dispose long-lived reactives or shared stores when they are no longer needed.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Example
+
+See [`example/`](example/) for a complete Flutter sample app.
