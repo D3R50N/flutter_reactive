@@ -1,8 +1,8 @@
 name: flutter_reactive
 description: "A lightweight reactive system for Flutter, inspired by simple state binding."
-version: 1.0.3
+version: 1.0.4
 homepage: "https://github.com/D3R50N/flutter_reactive"
-
+topics: ['flutter', 'reactive', 'state', 'state-management', 'store']
 environment:
   sdk: ^3.7.2
   flutter: ">=1.17.0"

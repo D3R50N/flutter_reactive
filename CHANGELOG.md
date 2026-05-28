@@ -1,11 +1,18 @@
 # Changelog
 
+## 1.0.4
+
+- Removed the nullable shorthand helpers `rtn` and `rtnNonStrict`
+- Kept `ReactiveN<T>` and `reactN<T>()` as the explicit nullable APIs
+- Kept `rt` and `rtNonStrict` for the non-nullable shorthand API
+- Updated the README to reflect the simpler public surface
+
 ## 1.0.3
 
 - Added `ReactiveDependency` for cached shared stores and dependencies
 - Added `.dependency` and `.dep` extensions for simple dependency reuse
 - Added `Rxb` alias for `ReactiveBuilder`, `Rxsb` for `ReactiveStateBuilder`, and `RxDep` for `ReactiveDependency`
-- Changed `.reactive()` extension to a simpler `.rt` and added `.rtNonStrict` for non-strict mode reactive creation. Same for nullable version with `.rtN` and `.rtNNonStrict`
+- Changed `.reactive()` extension to a simpler `.rt` and added `.rtNonStrict` for non-strict mode reactive creation
   \_ Added `.once(callback)` method to `Reactive` for one-time reactions that automatically unsubscribe after the first trigger
 - All subscription methods (`listen`, `debounce`, `throttle`, `once`) now return a `ReactiveSubscription` object with an explicit `cancel()` method for better subscription management and cleanup
 - Fixed `react` and `reactN` extensions to avoid emitting initial value on bind, preventing unnecessary widget rebuilds on initial state setup

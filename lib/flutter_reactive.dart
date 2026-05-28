@@ -126,7 +126,7 @@ class Reactive<T> {
   /// If the value is updated, all bound states are rebuilt and listeners are notified.
   /// If the value is updated within a transaction, notifications are deferred until the transaction is committed.
   void set(T newValue) {
-    if (_readOnly) throw Exception('Cannot modify a read-only Reactive');
+    if (_readOnly) throw StateError('Cannot modify a read-only Reactive');
     _set(newValue);
   }
 

@@ -1,50 +1,9 @@
 # Flutter Reactive
 
-Goodbye repetitive setState() calls! Welcome to Flutter Reactive.
-No ChangeNotifier, no boilerplate — just Reactive values bound to States.
+Flutter Reactive is a lightweight reactive state package for Flutter.
+It gives you local and shared state, derived values, and widget bindings without codegen or external dependencies.
 
-![logo.svg](logo.svg)
-
-## Why Flutter Reactive ?
-
-Let's be honest… writing `setState()` everywhere in 2026 feels old and most Flutter state management solutions are either too verbose (👀 ChangeNotifier, Provider…), too abstract (Riverpod, Bloc…), or come with too much features (Getx...).
-
-**Flutter Reactive** takes a different approach:\
-**Keep things simple, direct, and predictable.**
-
-No unnecessary concepts, no boilerplate, no steep learning curve.
-Flutter Reactive has **_zero_** external dependencies — just a plain Dart object that propagates its own changes. No context, no codegen, no framework lock-in.
-
-## Comparison
-
-| Specifications                    | Flutter Reactive | GetX | Provider | Bloc |
-| --------------------------------- | ---------------- | ---- | -------- | ---- |
-| Minimal boilerplate ?             | ✅               | ✅   | ❌       | ❌   |
-| Easy to learn ?                   | ✅               | ✅   | ✅       | ❌   |
-| Built-in reactivity (no setup) ?  | ✅               | ❌   | ❌       | ❌   |
-| Automatic UI updates ?            | ✅               | ✅   | ❌       | ✅   |
-| No external dependency required ? | ✅               | ❌   | ❌       | ❌   |
-| Supports computed values easily ? | ✅               | ❌   | ❌       | ❌   |
-| Supports side effects cleanly ?   | ✅               | ❌   | ❌       | ❌   |
-| Transaction / rollback system ?   | ✅               | ❌   | ❌       | ❌   |
-| Stream-friendly ?                 | ✅               | ✅   | ❌       | ✅   |
-| No strict architecture required ? | ✅               | ✅   | ✅       | ❌   |
-| Full control over state changes ? | ✅               | ❌   | ❌       | ❌   |
-
-## Features
-
-- `Reactive<T>` and nullable `ReactiveN<T>`
-- Strict/non-strict update mode
-- `listen`, `unlisten`, `stream`, `notify`
-- `bind` / `unbind` to Flutter `State`
-- `ReactiveBuilder`, `ReactiveStateBuilder`
-- Shared dependencies with `ReactiveDependency` or `RxDep` alias
-- Validators with `require(...)`
-- Derived state with `as`, `combine`, `combine2..combine5`, `compute`
-- Transactions with optional rollback: `Reactive.run(...)`
-- Save/restore checkpoints: `save`, `restore`, `unsave`, `unsaveAll`
-- Utility methods: `debounce`, `throttle`, `when`, `setAsync`, `mutate`
-- Extensions for `num`, `bool`, `String`, `Iterable/List`, `Map`, and `State`
+<img src="logo.svg" width="300" alt="Flutter Reactive logo"/>
 
 ## Installation
 
@@ -52,485 +11,145 @@ Flutter Reactive has **_zero_** external dependencies — just a plain Dart obje
 dart pub add flutter_reactive
 ```
 
-or manually add in your `pubspec.yaml`
-
-```yaml
-dependencies:
-  flutter_reactive: ^1.0.0
-```
-
-then
-
 ```dart
 import 'package:flutter_reactive/flutter_reactive.dart';
 ```
 
 ## Quick Start
 
-_🚨 If you come from `0.x` versions, [see breaking changes here](#breaking-changes-in-100)._
-
-We recommend to prefix all reactive variable names with a lowercase `r` to make them instantly recognizable in your codebase.
-
 ```dart
-final rCounter = Reactive(0);         // strict mode (default)
-final rUser = ReactiveN<String>();    // nullable
-final rCount2 = 0.rt;         // extension helper
-final rLoose = 0.rtNonStrict;     // non-strict: same value still notifies
+final counter = Reactive(0);
 
-rCounter.value = 1;
-rCounter.set(2);
-rCounter.update((v) => v + 1);
-await rCounter.setAsync(Future.value(10));
+counter.value = 1;
+counter.set(2);
+counter.update((value) => value + 1);
+await counter.setAsync(Future.value(10));
 ```
 
-## Using Inside a State
+Use the `rt` and `rtNonStrict` extensions when you want shorter syntax:
+
+```dart
+final rCount = 0.rt;
+final rLoose = 0.rtNonStrict;
+final rName = ReactiveN<String>();
+```
+
+## Bind To A Widget
 
 ```dart
 class _MyPageState extends State<MyPage> {
-  late final rCounter = react(0);      // auto-binds to this State
-  late final rName = reactN<String>(); // nullable + auto-bind
+  late final counter = react(0);
 
   @override
   Widget build(BuildContext context) {
-    return Text('Counter: ${rCounter.value}');
+    return Text('Counter: ${counter.value}');
   }
 }
 ```
 
-You can also bind manually:
+Or bind manually:
 
 ```dart
-final rCounter = Reactive(0);
+final counter = Reactive(0);
 
 @override
 void initState() {
   super.initState();
-  rCounter.bind(this);
+  counter.bind(this);
 }
 
 @override
 void dispose() {
-  rCounter.unbind(this);
+  counter.unbind(this);
   super.dispose();
 }
 ```
 
-## Listeners and Streams
+## Core Features
+
+- `listen`, `unlisten`, `stream`, and `notify`
+- `ReactiveBuilder` / `Rxb` and `ReactiveStateBuilder` / `Rxsb`
+- Shared dependencies with `ReactiveDependency` and `RxDep`
+- Validation with `require(...)`
+- Derived state with `as`, `combine`, and `compute`
+- Transactions with optional rollback via `Reactive.run(...)`
+- Save and restore checkpoints with `save`, `restore`, `unsave`, and `unsaveAll`
+- Helpers such as `debounce`, `throttle`, `when`, `setAsync`, and `mutate`
+- Extensions for `bool`, `num`, `String`, `Iterable`, `List`, `Map`, and `State`
+
+## Listeners And Streams
 
 ```dart
 void onCounterChanged(int value) {
   debugPrint('Counter changed: $value');
 }
 
-rCounter.listen(onCounterChanged);
-rCounter.listen(onCounterChanged, true); // emitInitial
-rCounter.unlisten(onCounterChanged);
+final sub = counter.listen(onCounterChanged);
+counter.listen(onCounterChanged, true);
+counter.unlisten(onCounterChanged); // or sub.cancel();
 
-rCounter.stream.listen((value) {
+counter.stream.listen((value) {
   debugPrint('Stream value: $value');
 });
-
-Reactive.streamEmitOnListen = true;
-rCounter.stream.listen((value) {
-  debugPrint('Immediate stream value: $value');
-});
-
-Reactive.streamEmitOnListen = false;
-rCounter.stream.listen((value) {
-  debugPrint('Only future stream values: $value');
-});
-
-// or inside a stream builder
-StreamBuilder<int>(
-  stream: rCounter.stream,
-  builder: (context, snapshot) =>
-      Text(snapshot.data?.toString() ?? ''),
-);
 ```
 
-## Widgets
-
-### ReactiveBuilder (or Rxb)
-
-Build a widget either by automatically tracking reactive reads, or by
-watching a specific reactive value.
-
-- `ReactiveBuilder(() { ... })` automatically tracks every reactive read inside the builder
-- `ReactiveBuilder.watch(reactive, builder)` listens to one explicit reactive
-- `ReactiveBuilder.stream(reactive, builder, withInitial: true)` exposes a Flutter `StreamBuilder`
-- `ReactiveBuilder.watch2..watch5(...)` provide typed builders for multiple explicit reactives
+## Derived State
 
 ```dart
-ReactiveBuilder(() {
-  return Text('Count: ${rCounter.value}');
-});
-// or just
-Rxb(() {
-  return Text('Count: ${rCounter.value}');
-});
+final price = 100.rt;
+final qty = 2.rt;
 
-Rxb.watch(
-  rCounter,
-  (value) => Text('Count: $value'),
-);
-
-Rxb.stream(
-  rCounter,
-  (context, snapshot) => Text('Count: ${snapshot.data}'),
-);
-
-Rxb.watch2(
-  rPrice,
-  rQty,
-  (price, qty) => Text('Total: ${price * qty}'),
-);
-
-// Equivalent helper on Reactive<T>
-rCounter.build((value) => Text('Count: $value'));
+final total = Reactive.compute(() => price.value * qty.value);
+final label = price.as((value) => '\$${value.toStringAsFixed(0)}');
 ```
 
-### ReactiveStateBuilder (or Rxsb)
-
-```dart
-Rxsb<bool>(
-  initialState: false,
-  states: {
-    true: (reactive) => ElevatedButton(
-      onPressed: () => reactive.value = false,
-      child: const Text('Disable'),
-    ),
-    false: (reactive) => ElevatedButton(
-      onPressed: () => reactive.value = true,
-      child: const Text('Enable'),
-    ),
-  },
-);
-```
+`compute` and `combine*` return read-only reactives.
 
 ## Shared Dependencies
-
-Use `ReactiveDependency` or `RxDep` alias (or `RxDep`) for shared stores or dependencies that you want to reuse across your app without manually passing them around.
-
-It works with a caching mechanism so be sure to call `dispose()` when you no longer need the instance, or use `ReactiveDependency` or `RxDep`  `.drop<Type>()` to remove it.
-
-```dart
-class UserStore {
-  final name = 'Alice'.rt;
-
-  void updateName(String value) {
-    name.value = value;
-  }
-}
-```
-
-Cache a store:
-
-```dart
-final user = UserStore().dependency; // or RxDep.use(() => UserStore());
-```
-
-Reuse it later:
-
-```dart
-final sameUser = UserStore().dep; // shorthand for .dependency
-final found = RxDep.of<UserStore>();
-```
-
-In order to use `onCreate` and `onDispose` lifecycle hooks of `ReactiveDependency` or `RxDep`, create a custom dependency class:
 
 ```dart
 class UserStore extends ReactiveDependency {
   final name = 'Alice'.rt;
-
-  @override
-  void onCreate() {
-    debugPrint('UserStore created');
-  }
-  @override
-  void onDispose() {
-    debugPrint('UserStore disposed');
-  }
 }
 
-final user = UserStore().dep; // onCreate is called here
-final sameUser = UserStore().dep; // returns cached instance, onCreate is NOT called again
-
-RxDep.drop<UserStore>(); // onDispose is called here
-user.dispose(); // also calls onDispose, but the instance is already removed from cache
-```
-
-Useful helpers:
-
-```dart
-ReactiveDependency.has<UserStore>();
-ReactiveDependency.drop<UserStore>();
-ReactiveDependency.clear();
+final user = UserStore().dep;
+final sameUser = UserStore().dep;
+RxDep.drop<UserStore>();
 ```
 
 ## Validation
 
 ```dart
-final rCounter = 0
+final counter = 0
     .rt
-    .require((v) => v >= 0, 'Counter cannot be negative')
-    .require((v) => v <= 10, 'Counter must be <= 10');
-
-try {
-  rCounter.value = 11;
-} on ReactiveValidatorError catch (e) {
-  debugPrint('message: ${e.message}');
-  debugPrint('invalid value: ${e.value}');
-}
+    .require((value) => value >= 0, 'Counter cannot be negative')
+    .require((value) => value <= 10, 'Counter must be <= 10');
 ```
 
-## Derived State
-
-### `as(...)` (single source)
+## Transactions
 
 ```dart
-final rText = ''.rt;
-final rLength = rText.as((text) => text.length);
-```
-
-### `combine(...)` and `combine2..combine5`
-
-```dart
-final rA = 1.rt;
-final rB = 2.rt;
-
-final rSum = Reactive.combine2(rA, rB, (a, b) => a + b);
-// or:
-final rSum2 = Reactive.combine([rA, rB], (values) => values[0] + values[1]);
-```
-
-### `compute(...)` (auto dependency tracking)
-
-```dart
-final rPrice = 100.rt;
-final rQty = 2.rt;
-
-final rTotal = Reactive.compute(() => rPrice.value * rQty.value);
-```
-
-`compute` and `combine*` outputs are read-only (derived values).
-If you are migrating from an older version, `Reactive.computed(...)`
-becomes `Reactive.compute(...)`.
-
-## Transactions and Rollback
-
-```dart
-final rCounter = 0.rt.require((v) => v >= 0, 'Must stay >= 0');
-
 await Reactive.run(() {
-  rCounter.inc(5);
-  rCounter.dec(2);
+  counter.inc(5);
+  counter.dec(2);
 });
 ```
 
-Rollback is enabled by default when an error happens:
-
-```dart
-await Reactive.run(
-  () {
-    rCounter.inc(5);
-    rCounter.dec(10); // fails validator, changes are rolled back
-  },
-  onError: (error) => debugPrint(error.toString()),
-);
-```
-
-Manual rollback:
-
-```dart
-final tx = await Reactive.run(
-  () {
-    rCounter.inc(5);
-    rCounter.dec(10);
-  },
-  rollbackOnError: false,
-);
-
-tx.rollback();
-```
-
-## Save and Restore State
-
-```dart
-final rName = ''.rt;
-
-rName.value = 'Andy';
-rName.save('step1');
-
-rName.value = 'Max';
-rName.restore('step1'); // Andy
-
-rName.unsave('step1');
-rName.unsaveAll();
-```
-
-## Side-Effect Helpers
-
-```dart
-rCounter.when((v) => v == 0, (_) => debugPrint('Counter is zero'));
-
-rCounter.debounce(300, (value) {
-  debugPrint('Debounced: $value');
-});
-
-rCounter.throttle(300, (value) {
-  debugPrint('Throttled: $value');
-});
-```
-
-## Core Extensions (Exported by Default)
-
-### `Reactive<bool>`
-
-- `toggle()`, `enable()`, `disable()`
-- `isTrue`, `isFalse`
-
-### `Reactive<num>`
-
-- `increment()`, `decrement()`, `inc()`, `dec()`
-- `isZero`, `isPositive`, `isNegative`
-- `clamp(min, max)`, `roundTo(digits)`
-- arithmetic/comparison operators (`+`, `-`, `*`, `/`, `~/`, `%`, unary `-`, `<`, `<=`, `>`, `>=`)
-
-### `Reactive<String>`
-
-- `isEmpty`, `isNotEmpty`, `length`
-- `clear()`, `append()`, `prepend()`, `trim()`, `toUpper()`, `toLower()`
-- `upper`, `lower`, `trimmed`
-- `contains`, `startsWith`, `endsWith`
-- operators: `+`, `<`, `<=`, `>`, `>=`
-
-### `Reactive<Iterable<T>>` and `Reactive<List<T>>`
-
-`Iterable` helpers:
-
-- `first`, `firstOrNull`, `last`, `lastOrNull`
-- `isEmpty`, `isNotEmpty`, `length`
-- `toList()`, `forEach(...)`, `where(...)`, `firstWhereOrNull(...)`
-- `transform(...)`, `at(index)`, `atOrNull(index)`
-- read operator `[]`
-
-`List` helpers:
-
-- `add`, `addFirst`, `addAll`, `addToSet`
-- `remove`, `removeWhere`, `removeAll`, `clear`, `sort`
-- read/write operators `[]` and `[]=`
-
-### `Reactive<Map<K, V>>`
-
-- `put`, `remove`, `clear`, `has`, `get`, `forEach`
-- `keys`, `values`, `entries`
-- read/write operators `[]` and `[]=`
-
-### `State` extension
-
-- `updateState([callback])`
-- `react<T>(T initial, [bool strict = true])`
-- `reactN<T>([T? initial, bool strict = true])`
-
-## Optional Extra Extensions (Direct Import)
-
-These files exist but are not exported by `flutter_reactive.dart`.
-Import them directly if needed:
-
-```dart
-import 'package:flutter_reactive/extensions/datetime.dart';
-import 'package:flutter_reactive/extensions/duration.dart';
-import 'package:flutter_reactive/extensions/color.dart';
-```
-
-They provide helpers for `Reactive<DateTime>`, `Reactive<Duration>`, and `Reactive<Color>`.
+Rollback happens automatically when an error is thrown. You can also disable rollback and handle it manually with the returned transaction.
 
 ## Best Practices
 
-- Prefer immutable updates when possible; use `mutate(...)` only for in-place mutation.
-- Use strict mode (`strict = true`) for predictable change detection.
-- Use non-strict mode (`strict = false`) when same-value notifications are required.
-- Dispose long-lived reactives you no longer need: `reactive.dispose()`.
+- Prefer immutable updates when possible.
+- Use strict mode for predictable change detection.
+- Use non-strict mode when repeated equal values should still notify listeners.
+- Dispose long-lived reactives when they are no longer needed.
 
-## Breaking Changes in 1.0.0
+## Breaking Changes In 1.0.0
 
-- `ReactiveBuilder(reactive: ..., builder: ...)` is no longer the main API
-- `Reactive.computed(...)` is now `Reactive.compute(...)`
-- `listen(callback)` now also supports `listen(callback, true)` to emit immediately
-- `extensions/list.dart` is now `extensions/iterable.dart`
-
-## Migration from 0.x
-
-### `ReactiveBuilder`
-
-Before:
-
-```dart
-ReactiveBuilder<int>(
-  reactive: rCounter,
-  builder: (value) => Text('$value'),
-);
-
-ReactiveBuilder.compute(() {
-  return Text('${rCounter.value}');
-});
-```
-
-Now:
-
-```dart
-ReactiveBuilder.watch(
-  rCounter,
-  (value) => Text('$value'),
-);
-
-ReactiveBuilder(() {
-  return Text('${rCounter.value}');
-});
-```
-
-### `computed(...)` to `compute(...)`
-
-Before:
-
-```dart
-final total = Reactive.computed(() => price.value * qty.value);
-```
-
-Now:
-
-```dart
-final total = Reactive.compute(() => price.value * qty.value);
-```
-
-### `listen(...)`
-
-Before:
-
-```dart
-rCounter.listen(onCounterChanged);
-```
-
-Now:
-
-```dart
-rCounter.listen(onCounterChanged);
-rCounter.listen(onCounterChanged, true); // emit current value immediately
-```
-
-### `list.dart`
-
-Before:
-
-```dart
-import 'package:flutter_reactive/extensions/list.dart';
-```
-
-Now:
-
-```dart
-import 'package:flutter_reactive/extensions/iterable.dart';
-```
+- `ReactiveBuilder(reactive: ..., builder: ...)` is no longer the main API.
+- `Reactive.computed(...)` became `Reactive.compute(...)`.
+- `listen(callback, true)` emits the current value immediately.
+- `extensions/list.dart` became `extensions/iterable.dart`.
 
 ## License
 

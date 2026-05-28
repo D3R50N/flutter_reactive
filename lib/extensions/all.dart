@@ -14,18 +14,8 @@ extension ReactiveAll<T> on T {
     return Reactive(this);
   }
 
-  /// Extension to create a [ReactiveN] wrapper for any type.
-  ReactiveN<T> get rtn {
-    return ReactiveN(this);
-  }
-
   /// Creates a non-strict [Reactive] wrapper for this value.
   Reactive<T> get rtNonStrict {
     return Reactive(this, false);
-  }
-
-  /// Creates a non-strict [ReactiveN] wrapper for this value.
-  ReactiveN<T> get rtnNonStrict {
-    return ReactiveN(this, false);
   }
 }
