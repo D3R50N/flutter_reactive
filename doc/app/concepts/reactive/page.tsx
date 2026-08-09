@@ -29,11 +29,11 @@ final counter = Reactive(0);
 // Nullable Reactive
 final user = ReactiveN<String>();
 
-// Via the .rt extension (shortcut)
-final count = 0.rt;
+// Via the .rx extension (shortcut)
+final count = 0.rx;
 
 // Non-strict mode: same value = notification anyway
-final looseCounter = 0.rtNonStrict;`}
+final looseCounter = 0.rxNonStrict;`}
         />
       </section>
 
@@ -112,7 +112,7 @@ final strictCounter = Reactive(0);
 strictCounter.value = 0; // No notification (same value)
 
 // Non-strict mode: strict = false
-final looseCounter = 0.rtNonStrict;
+final looseCounter = 0.rxNonStrict;
 looseCounter.value = 0; // Notification triggered`}
         />
       </section>
@@ -128,7 +128,7 @@ looseCounter.value = 0; // Notification triggered`}
             <h3 className="font-medium mb-2">Reactive&lt;bool&gt;</h3>
             <CodeBlock
               language="dart"
-              code={`final enabled = true.rt;
+              code={`final enabled = true.rx;
 enabled.toggle();   // Inverts the value
 enabled.enable();   // true
 enabled.disable();  // false
@@ -141,7 +141,7 @@ print(enabled.isFalse); // inverse`}
             <h3 className="font-medium mb-2">Reactive&lt;num&gt;</h3>
             <CodeBlock
               language="dart"
-              code={`final count = 5.rt;
+              code={`final count = 5.rx;
 count.inc();        // +1
 count.dec();        // -1
 count.increment(3); // +3
@@ -159,7 +159,7 @@ final product = count * 2;`}
             <h3 className="font-medium mb-2">Reactive&lt;String&gt;</h3>
             <CodeBlock
               language="dart"
-              code={`final text = 'hello'.rt;
+              code={`final text = 'hello'.rx;
 text.append(' world');  // 'hello world'
 text.prepend('Say: ');  // 'Say: hello world'
 text.toUpper();         // 'SAY: HELLO WORLD'
@@ -174,13 +174,13 @@ print(text.isEmpty);`}
             <h3 className="font-medium mb-2">Reactive&lt;List&gt; / Reactive&lt;Map&gt;</h3>
             <CodeBlock
               language="dart"
-              code={`final items = <String>[].rt;
+              code={`final items = <String>[].rx;
 items.add('Item 1');
 items.addAll(['Item 2', 'Item 3']);
 items.remove('Item 1');
 items.clear();
 
-final data = <String, int>{}.rt;
+final data = <String, int>{}.rx;
 data.put('key', 42);
 data.remove('key');
 print(data.has('key'));`}

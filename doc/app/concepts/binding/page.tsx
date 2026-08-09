@@ -150,8 +150,8 @@ StreamBuilder<int>(
           filename="reactive_builder.dart"
           language="dart"
           code={`final counter = Reactive(0);
-final price = 100.rt;
-final quantity = 2.rt;
+final price = 100.rx;
+final quantity = 2.rx;
 
 // Automatic read tracking
 ReactiveBuilder(() {

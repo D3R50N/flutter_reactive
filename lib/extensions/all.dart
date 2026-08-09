@@ -6,16 +6,17 @@ extension ReactiveAll<T> on T {
   ///
   /// Example:
   /// ```dart
-  /// final counter = 0.rt; // Reactive<int>
-  /// final title = 'Hello'.rt; // Reactive<String>
-  /// final enabled = true.rt; // Reactive<bool>
+  /// final counter = 0.rx; // Reactive<int>
+  /// final title = 'Hello'.rx; // Reactive<String>
+  /// final enabled = true.rx; // Reactive<bool>
   /// ```
-  Reactive<T> get rt {
+  Reactive<T> get rx {
     return Reactive(this);
   }
 
   /// Creates a non-strict [Reactive] wrapper for this value.
-  Reactive<T> get rtNonStrict {
+  Reactive<T> get rxNonStrict {
     return Reactive(this, false);
   }
 }
+

@@ -66,7 +66,8 @@ export default function UseCasesPage() {
           language="dart"
           code={`class _SearchPageState extends State<SearchPage> {
   late final query = react('');
-  late final results = <Product>[].rtNonStrict;
+  late final results = <Product>[].rxNonStrict;
+  final isLoading = false.rx;
   ReactiveSubscription<String>? querySubscription;
 
   @override

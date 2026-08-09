@@ -328,53 +328,13 @@ class Reactive<T> {
   /// The state will no longer rebuild when the value changes.
   void unbind(State state) => _boundStates.remove(state);
 
-  /// Combines multiple Reactive values (can be of different types) into a single Reactive.
-  ///
-  /// [dependencies] is the list of Reactive values to listen to.
-  /// [combiner] receives a list of current values in the same order you pass them and returns a new value of type R.
-  static Reactive<R> combine<R>(
-    List<Reactive<dynamic>> dependencies,
-    R Function(List<dynamic> values) combiner,
-  ) {
-    // Initial value
-    final combined = Reactive<R>(
-      combiner(dependencies.map((r) => r.value).toList()),
-    );
-    combined._readOnly = true;
-
-    // Callback to update combined whenever a source changes
-    void update(_) {
-      combined._set(combiner(dependencies.map((r) => r.value).toList()));
+  static R _trackDependencies<R>(Reactive<dynamic> target, R Function() fn) {
+    _computingStack.add(target);
+    try {
+      return fn();
+    } finally {
+      _computingStack.removeLast();
     }
-
-    // Listen to all dependencies
-    for (final dep in dependencies) {
-      dep.listen(update);
-    }
-
-    return combined;
-  }
-
-  /// Same as combine but the combination function is not required
-  static Reactive<R> compute<R>(R Function() fn) {
-    final tempComputed = ReactiveN<R>();
-    final value = _trackDependencies(tempComputed, fn);
-
-    final computed = Reactive<R>(value);
-    computed._readOnly = true;
-    computed._computedReactives.addAll(tempComputed._computedReactives);
-
-    void update(_) {
-      computed._clearComputedDependencyListeners();
-      computed._computedReactives.clear();
-      final newValue = _trackDependencies(computed, fn);
-      computed._set(newValue);
-      computed._listenToComputedDependencies(update);
-    }
-
-    computed._listenToComputedDependencies(update);
-
-    return computed;
   }
 
   void _listenToComputedDependencies(_ReactiveListener<dynamic> listener) {
@@ -391,110 +351,6 @@ class Reactive<T> {
     _computedDependencyListeners.clear();
   }
 
-  static R _trackDependencies<R>(Reactive<dynamic> target, R Function() fn) {
-    _computingStack.add(target);
-    try {
-      return fn();
-    } finally {
-      _computingStack.removeLast();
-    }
-  }
-
-  /// Combines two reactive values into a new [Reactive].
-  ///
-  /// The returned reactive is automatically updated whenever
-  /// either [a] or [b] changes.
-  ///
-  /// The [combiner] callback receives the latest values of
-  /// both reactives and must return the new combined value.
-  ///
-  /// This method keeps strong typing and avoids using `dynamic`.
-  ///
-  /// Example:
-  /// ```dart
-  /// final a = 1.rt;
-  /// final b = 2.rt;
-  ///
-  /// final sum = Reactive.combine2(a, b, (x, y) => x + y);
-  /// ```
-  static Reactive<R> combine2<A, B, R>(
-    Reactive<A> a,
-    Reactive<B> b,
-    R Function(A a, B b) combiner,
-  ) {
-    return Reactive.combine([a, b], (l) => combiner(l[0] as A, l[1] as B));
-  }
-
-  /// Combines three reactive values into a new [Reactive].
-  ///
-  /// The returned reactive is updated whenever any of the
-  /// provided reactives changes.
-  ///
-  /// The [combiner] callback is called with the latest values
-  /// of [a], [b] and [c], in the same order.
-  ///
-  /// This is useful for building derived state based on
-  /// multiple independent reactives.
-  ///
-  /// Example:
-  /// ```dart
-  /// final counter = 0.rt;
-  /// final name = 'Andy'.rt;
-  /// final visible = true.rt;
-  ///
-  /// final text = Reactive.combine3(
-  ///   counter,
-  ///   name,
-  ///   visible,
-  ///   (c, n, v) => '$n: $c (${v ? "on" : "off"})',
-  /// );
-  /// ```
-  static Reactive<R> combine3<A, B, C, R>(
-    Reactive<A> a,
-    Reactive<B> b,
-    Reactive<C> c,
-    R Function(A a, B b, C c) combiner,
-  ) {
-    return Reactive.combine([
-      a,
-      b,
-      c,
-    ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C));
-  }
-
-  /// Same thing as [combine2] and [combine3], but for four reactives.
-  static Reactive<R> combine4<A, B, C, D, R>(
-    Reactive<A> a,
-    Reactive<B> b,
-    Reactive<C> c,
-    Reactive<D> d,
-    R Function(A a, B b, C c, D d) combiner,
-  ) {
-    return Reactive.combine([
-      a,
-      b,
-      c,
-      d,
-    ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C, l[3] as D));
-  }
-
-  /// Same thing as [combine2], [combine3] but for five reactives.
-  static Reactive<R> combine5<A, B, C, D, E, R>(
-    Reactive<A> a,
-    Reactive<B> b,
-    Reactive<C> c,
-    Reactive<D> d,
-    Reactive<E> e,
-    R Function(A a, B b, C c, D d, E e) combiner,
-  ) {
-    return Reactive.combine([
-      a,
-      b,
-      c,
-      d,
-      e,
-    ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C, l[3] as D, l[4] as E));
-  }
 
   /// Returns another reactive based on this one using [parser]
   ///
@@ -562,11 +418,25 @@ class Reactive<T> {
     FutureOr<void> Function() block, {
     bool rollbackOnError = true,
     void Function(Object error)? onError,
-  }) => ReactiveTransactionManager._run(
+  }) => rxRun(
     block,
     rollbackOnError: rollbackOnError,
     onError: onError,
   );
+
+
+  /// Compares the underlying value with another value or Reactive instance.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is Reactive<T>) return _value == other._value;
+    if (other is T) return value == other;
+    return false;
+  }
+
+
+  @override
+  int get hashCode => value.hashCode;
 
   /// Returns the string representation of the current value.
   @override
@@ -574,3 +444,117 @@ class Reactive<T> {
     return value.toString();
   }
 }
+
+/// Computes a reactive value automatically tracking accessed dependencies.
+Reactive<R> compute<R>(R Function() fn) {
+  final tempComputed = ReactiveN<R>();
+  final value = Reactive._trackDependencies(tempComputed, fn);
+
+  final computed = Reactive<R>(value);
+  computed._readOnly = true;
+  computed._computedReactives.addAll(tempComputed._computedReactives);
+
+  void update(_) {
+    computed._clearComputedDependencyListeners();
+    computed._computedReactives.clear();
+    final newValue = Reactive._trackDependencies(computed, fn);
+    computed._set(newValue);
+    computed._listenToComputedDependencies(update);
+  }
+
+  computed._listenToComputedDependencies(update);
+
+  return computed;
+}
+
+/// Combines multiple Reactive values into a single Reactive.
+Reactive<R> combine<R>(
+  List<Reactive<dynamic>> dependencies,
+  R Function(List<dynamic> values) combiner,
+) {
+  final combined = Reactive<R>(
+    combiner(dependencies.map((r) => r.value).toList()),
+  );
+  combined._readOnly = true;
+
+  void update(_) {
+    combined._set(combiner(dependencies.map((r) => r.value).toList()));
+  }
+
+  for (final dep in dependencies) {
+    dep.listen(update);
+  }
+
+  return combined;
+}
+
+/// Combines two reactive values into a new [Reactive].
+Reactive<R> combine2<A, B, R>(
+  Reactive<A> a,
+  Reactive<B> b,
+  R Function(A a, B b) combiner,
+) {
+  return combine([a, b], (l) => combiner(l[0] as A, l[1] as B));
+}
+
+/// Combines three reactive values into a new [Reactive].
+Reactive<R> combine3<A, B, C, R>(
+  Reactive<A> a,
+  Reactive<B> b,
+  Reactive<C> c,
+  R Function(A a, B b, C c) combiner,
+) {
+  return combine([
+    a,
+    b,
+    c,
+  ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C));
+}
+
+/// Combines four reactive values into a new [Reactive].
+Reactive<R> combine4<A, B, C, D, R>(
+  Reactive<A> a,
+  Reactive<B> b,
+  Reactive<C> c,
+  Reactive<D> d,
+  R Function(A a, B b, C c, D d) combiner,
+) {
+  return combine([
+    a,
+    b,
+    c,
+    d,
+  ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C, l[3] as D));
+}
+
+/// Combines five reactive values into a new [Reactive].
+Reactive<R> combine5<A, B, C, D, E, R>(
+  Reactive<A> a,
+  Reactive<B> b,
+  Reactive<C> c,
+  Reactive<D> d,
+  Reactive<E> e,
+  R Function(A a, B b, C c, D d, E e) combiner,
+) {
+  return combine([
+    a,
+    b,
+    c,
+    d,
+    e,
+  ], (l) => combiner(l[0] as A, l[1] as B, l[2] as C, l[3] as D, l[4] as E));
+}
+
+/// Runs a block of code within a transaction, allowing for automatic rollback on error.
+FutureOr<ReactiveTransaction> rxRun(
+  FutureOr<void> Function() block, {
+  bool rollbackOnError = true,
+  void Function(Object error)? onError,
+}) => ReactiveTransactionManager._run(
+  block,
+  rollbackOnError: rollbackOnError,
+  onError: onError,
+);
+
+
+

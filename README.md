@@ -106,13 +106,13 @@ ReactiveStateBuilder<bool>(
 ## Derived State
 
 ```dart
-final price = 100.rt;
-final quantity = 2.rt;
+final price = 100.rx;
+final quantity = 2.rx;
 
-final total = Reactive.compute(() => price.value * quantity.value);
+final total = compute(() => price.value * quantity.value);
 final label = total.as((value) => 'Total: \$${value.toStringAsFixed(0)}');
 
-final summary = Reactive.combine2(
+final summary = combine2(
   price,
   quantity,
   (p, q) => '$q × \$${p.toStringAsFixed(0)}',
@@ -121,10 +121,13 @@ final summary = Reactive.combine2(
 
 `compute`, `combine`, and the typed helpers (`combine2` to `combine5`) return read-only reactives. Trying to set a value on them throws a state error.
 
+Values can be accessed via `.value`, `.v`, or by calling the instance directly `counter()`.
+
+
 ## Side Effects
 
 ```dart
-final counter = 0.rt;
+final counter = 0.rx;
 
 final sub = counter.listen((value) {
   debugPrint('Counter changed: $value');
@@ -147,7 +150,7 @@ counter.when((value) => value == 10, (value) {
 
 ```dart
 class UserStore extends ReactiveDependency {
-  final name = 'Alice'.rt;
+  final name = 'Alice'.rx;
 
   void rename(String value) => name.value = value;
 }
@@ -169,7 +172,7 @@ class User {
   int age;
 }
 
-final user = User('Alice', 30).rt
+final user = User('Alice', 30).rx
     .require((value) => value.age >= 0, 'Age cannot be negative')
     .require((value) => value.name.trim().isNotEmpty, 'Name cannot be empty');
 
@@ -184,10 +187,10 @@ Use `mutate` when you intentionally update an object in place. For immutable upd
 ## Transactions, Validation, and Checkpoints
 
 ```dart
-final stock = <String, int>{'Latte': 3}.rt;
-final sold = <String>[].rtNonStrict;
+final stock = <String, int>{'Latte': 3}.rx;
+final sold = <String>[].rxNonStrict;
 
-await Reactive.run(() {
+await rxRun(() {
   stock.put('Latte', stock.get('Latte')! - 2);
   sold.add('ticket-1');
 });
@@ -198,7 +201,7 @@ If an error is thrown, changes are rolled back by default. You can also disable 
 Save and restore checkpoints when you want lightweight state snapshots:
 
 ```dart
-final counter = 0.rt;
+final counter = 0.rx;
 
 counter.save('draft');
 counter.increment(5);
@@ -218,23 +221,23 @@ counter.restore('draft');
 A quick example:
 
 ```dart
-final name = ' Flutter '.rt;
+final name = ' Flutter '.rx;
 name.trim();
 name.toUpper();
 name.append(' Reactive');
 
-final items = <int>[2, 5, 1].rtNonStrict;
+final items = <int>[2, 5, 1].rxNonStrict;
 items.addFirst(9);
 items.sort();
 
-final settings = <String, dynamic>{}.rt;
+final settings = <String, dynamic>{}.rx;
 settings.put('theme', 'dark');
 ```
 
 ## Best Practices
 
 - Prefer immutable updates whenever possible.
-- Use `rtNonStrict` for mutable collections or repeated equal values that should still notify listeners.
+- Use `rxNonStrict` for mutable collections or repeated equal values that should still notify listeners.
 - Use `mutate` only when in-place mutation is intentional.
 - Dispose long-lived reactives or shared stores when they are no longer needed.
 

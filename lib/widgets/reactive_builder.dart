@@ -105,7 +105,7 @@ class _ReactiveBuilderState extends State<ReactiveBuilder> {
   @override
   void initState() {
     super.initState();
-    _computed = Reactive.compute(widget.builder);
+    _computed = compute(widget.builder);
     _computed.bind(this);
   }
 
@@ -115,7 +115,7 @@ class _ReactiveBuilderState extends State<ReactiveBuilder> {
     if (oldWidget.builder != widget.builder) {
       _computed.unbind(this);
       _computed.dispose();
-      _computed = Reactive.compute(widget.builder);
+      _computed = compute(widget.builder);
       _computed.bind(this);
     }
   }

@@ -74,7 +74,8 @@ final count = 0.reactive();
 final total = Reactive.computed(() => a.value + b.value);
 
 // After
-final count = 0.rt;
+final shortHand = 0.rx;
+final count = 0.rx;
 final total = Reactive.compute(() => a.value + b.value);`,
       },
     ],

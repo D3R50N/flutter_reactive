@@ -165,7 +165,7 @@ userStore.dispose();`}
           language="dart"
           code={`class AuthStore extends ReactiveDependency {
   final user = ReactiveN<User>();
-  final isLoading = false.rt;
+  final isLoading = false.rx;
 
   bool get isLoggedIn => user.value != null;
 

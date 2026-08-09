@@ -98,17 +98,28 @@ final taxRate = 0.2.rt;
 final total = Reactive.compute(() {
   final subtotal = price.value * quantity.value;
   final tax = subtotal * taxRate.value;
-  return subtotal + tax;
-});
+  (p, q, d) => (p * q) * (1 - d),
+);`}
+        />
+      </section>
 
-print(total.value); // 240.0
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Dynamic Computation (compute)</h2>
+        <p className="text-muted-foreground">
+          Automatically tracks dependencies read inside the function:
+        </p>
+        <CodeBlock
+          filename="derived_compute.dart"
+          language="dart"
+          code={`final price = 100.rx;
+final quantity = 2.rx;
+final taxRate = 0.2.rx;
 
-// Change any source
-quantity.value = 3;
-print(total.value); // 360.0
-
-taxRate.value = 0.1;
-print(total.value); // 330.0`}
+// Auto-tracks reads of price, quantity, and taxRate
+final grandTotal = compute(() {
+  final sub = price.value * quantity.value;
+  return sub * (1 + taxRate.value);
+});`}
         />
         <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
@@ -130,7 +141,7 @@ print(total.value); // 330.0`}
         <CodeBlock
           filename="readonly.dart"
           language="dart"
-          code={`final count = 0.rt;
+          code={`final count = 0.rx;
 final doubled = count.as((v) => v * 2);
 
 // OK - Modify the source
@@ -145,22 +156,6 @@ print(doubled.value); // 10
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Practical Example: Shopping Cart</h2>
         <CodeBlock
-          filename="cart_example.dart"
-          language="dart"
-          code={`class CartState {
-  final items = <CartItem>[].rt;
-  final couponDiscount = 0.0.rt;
-  
-  // Subtotal: sum of prices x quantities
-  late final subtotal = Reactive.compute(() {
-    return items.value.fold(
-      0.0,
-      (sum, item) => sum + (item.price * item.quantity),
-    );
-  });
-  
-  // 20% tax
-  late final tax = subtotal.as((value) => value * 0.2);
   
   // Final total with discount
   late final total = Reactive.combine2(

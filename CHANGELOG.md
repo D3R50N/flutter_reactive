@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0 (🚨 Breaking changes)
+
+- **BREAKING**: Renamed `.rt` extension to `.rx` (e.g. `0.rx`, `'hello'.rx`, `true.rx`)
+- **BREAKING**: Renamed `.rtNonStrict` extension to `.rxNonStrict`
+- Added top-level functions `compute`, `combine`, `combine2`..`combine5` for clean derived state creation
+- Added `rxRun` top-level function alias for transactions
+- Added `.v` getter/setter and `call()` operator for concise value access
+- Overrode `operator ==` and `hashCode` on `Reactive<T>` for value-based equality checks
+- Updated README, documentation, and example app to reflect the new `.rx` extension and global APIs
+
+
 ## 1.0.4
 
 - Removed the nullable shorthand helpers `rtn` and `rtnNonStrict`

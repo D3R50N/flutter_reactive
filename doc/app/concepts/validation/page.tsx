@@ -23,15 +23,15 @@ export default function ValidationPage() {
           filename="validators.dart"
           language="dart"
           code={`final counter = 0
-    .rt
+    .rx
     .require((v) => v >= 0, 'Counter cannot be negative')
     .require((v) => v <= 100, 'Counter must be <= 100');
 
-final email = ''.rt
+final email = ''.rx
     .require((v) => v.isNotEmpty, 'Email required')
     .require((v) => v.contains('@'), 'Invalid email');
 
-final password = ''.rt
+final password = ''.rx
     .require((v) => v.length >= 8, 'Minimum 8 characters')
     .require((v) => v.contains(RegExp(r'[A-Z]')), 'At least one uppercase')
     .require((v) => v.contains(RegExp(r'[0-9]')), 'At least one digit');`}

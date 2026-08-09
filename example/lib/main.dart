@@ -44,45 +44,45 @@ class _CafeOpsPageState extends State<CafeOpsPage> {
   int _nextTicketId = 1;
   late final TextEditingController _noteController;
 
-  late final Reactive<String> selectedDrink = 'Latte'.rt;
-  late final Reactive<int> quantity = 1.rt
-      .require((value) => value > 0, 'Quantity must be at least 1')
-      .require((value) => value <= 6, 'Quantity is capped at 6 per ticket');
-  late final Reactive<bool> isMember = false.rt;
-  late final Reactive<bool> rushMode = false.rt;
-  late final Reactive<String> customerNote = ''.rt;
-  late final Reactive<String> queueFilter = 'all'.rt;
-  late final Reactive<String> savedDraftLabel = 'Draft: none'.rtNonStrict;
-  late final Reactive<String> serviceSignal = 'Counter ready'.rtNonStrict;
-  late final Reactive<int> serviceSignalHits = 0.rtNonStrict;
-  late final Reactive<List<String>> activityLog = <String>[].rtNonStrict;
+  late final Reactive<String> selectedDrink = 'Latte'.rx;
+  late final Reactive<int> quantity = 1.rx
+      .require((value) => value >= 1, 'Quantity must be at least 1')
+      .require((value) => value <= 10, 'Maximum 10 drinks per order');
+  late final Reactive<bool> isMember = false.rx;
+  late final Reactive<bool> rushMode = false.rx;
+  late final Reactive<String> customerNote = ''.rx;
+  late final Reactive<String> queueFilter = 'all'.rx;
+  late final Reactive<String> savedDraftLabel = 'Draft: none'.rxNonStrict;
+  late final Reactive<String> serviceSignal = 'Counter ready'.rxNonStrict;
+  late final Reactive<int> serviceSignalHits = 0.rxNonStrict;
+  late final Reactive<List<String>> activityLog = <String>[].rxNonStrict;
   late final Reactive<Map<String, int>> stockByDrink = <String, int>{
     'Espresso': 14,
     'Latte': 9,
     'Matcha': 7,
     'Cookie': 18,
-  }.rtNonStrict.require(
+  }.rxNonStrict.require(
     (stock) => stock.values.every((value) => value >= 0),
     'Stock cannot go negative',
   );
-  late final Reactive<List<OrderTicket>> tickets = <OrderTicket>[].rtNonStrict;
+  late final Reactive<List<OrderTicket>> tickets = <OrderTicket>[].rxNonStrict;
 
-  late final Reactive<double> unitPrice = Reactive.compute(
+  late final Reactive<double> unitPrice = compute(
     () => _menuPrices[selectedDrink.value]!,
   );
-  late final Reactive<double> subtotal = Reactive.compute(
+  late final Reactive<double> subtotal = compute(
     () => unitPrice.value * quantity.value,
   );
-  late final Reactive<double> discount = Reactive.compute(
+  late final Reactive<double> discount = compute(
     () => isMember.value ? subtotal.value * 0.12 : 0,
   );
-  late final Reactive<double> total = Reactive.compute(
+  late final Reactive<double> total = compute(
     () => subtotal.value - discount.value,
   );
-  late final Reactive<int> etaMinutes = Reactive.compute(
+  late final Reactive<int> etaMinutes = compute(
     () => (rushMode.value ? 6 : 3) + quantity.value * 2,
   );
-  late final Reactive<String> orderHeadline = Reactive.combine3(
+  late final Reactive<String> orderHeadline = combine3(
     selectedDrink,
     quantity,
     isMember,
