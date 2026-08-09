@@ -32,7 +32,7 @@ export default function InstallationPage() {
           filename="pubspec.yaml"
           language="yaml"
           code={`dependencies:
-  flutter_reactive: ^1.0.4`}
+  flutter_reactive: ^2.0.0`}
         />
         <p className="text-muted-foreground">
           Then run:

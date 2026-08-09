@@ -19,7 +19,7 @@ export default function HomePage() {
             variant="secondary"
             className="bg-primary/10 text-primary border-primary/20"
           >
-            v1.0.4
+            v2.0.0
           </Badge>
           <Badge variant="outline">Stable</Badge>
         </div>
