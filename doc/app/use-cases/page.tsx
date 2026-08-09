@@ -1,5 +1,5 @@
-import { CodeBlock } from "@/components/docs/code-block"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CodeBlock } from "@/components/docs/code-block";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function UseCasesPage() {
   return (
@@ -54,12 +54,17 @@ export default function UseCasesPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">2. Listen to changes, then cancel</h2>
+        <h2 className="text-xl font-semibold">
+          2. Listen to changes, then cancel
+        </h2>
         <p className="text-muted-foreground">
           Use this when you need to react to a value change outside the widget
           tree, for example to trigger a search, analytics event, or sync
           request. Keep the returned subscription and cancel it in
-          <code className="mx-1 font-mono text-sm bg-muted px-1 py-0.5 rounded">dispose()</code>.
+          <code className="mx-1 font-mono text-sm bg-muted px-1 py-0.5 rounded">
+            dispose()
+          </code>
+          .
         </p>
         <CodeBlock
           filename="search_controller.dart"
@@ -140,7 +145,9 @@ void commitEdit() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">4. Apply several changes atomically</h2>
+        <h2 className="text-xl font-semibold">
+          4. Apply several changes atomically
+        </h2>
         <p className="text-muted-foreground">
           Use a transaction when multiple values must stay in sync. If one step
           fails, the package rolls everything back automatically.
@@ -148,7 +155,7 @@ void commitEdit() {
         <CodeBlock
           filename="checkout.dart"
           language="dart"
-          code={`await Reactive.run(() {
+          code={`await rxRun(() {
   cartTotal.value = cartTotal.value + 29.90;
   inventoryCount.dec();
   appliedCoupon.value = 'WELCOME10';
@@ -169,7 +176,9 @@ void commitEdit() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">5. Share app state once, reuse everywhere</h2>
+        <h2 className="text-xl font-semibold">
+          5. Share app state once, reuse everywhere
+        </h2>
         <p className="text-muted-foreground">
           Use a dependency when you want a store-like object that can be reused
           across the app without passing it through every constructor.
@@ -196,7 +205,9 @@ final authStore = AuthStore().dep;`}
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">6. Derive UI state instead of duplicating it</h2>
+        <h2 className="text-xl font-semibold">
+          6. Derive UI state instead of duplicating it
+        </h2>
         <p className="text-muted-foreground">
           Use computed values for totals, labels, and status chips. They update
           automatically whenever the source values change.
@@ -204,7 +215,7 @@ final authStore = AuthStore().dep;`}
         <CodeBlock
           filename="cart_summary.dart"
           language="dart"
-          code={`final subtotal = Reactive.combine2(
+          code={`final subtotal = combine2(
   cartItems,
   discountRate,
   (items, discount) => items.fold<double>(
@@ -223,26 +234,54 @@ final label = subtotal.as((value) => 'Subtotal: \\$\${value.toStringAsFixed(2)}'
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 font-medium text-foreground">Feature</th>
-                <th className="text-left py-3 px-4 font-medium text-foreground">Best for</th>
+                <th className="text-left py-3 px-4 font-medium text-foreground">
+                  Feature
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-foreground">
+                  Best for
+                </th>
               </tr>
             </thead>
             <tbody>
-              <FeatureRow feature="listen / once / when" use="Side effects, logging, syncing, and triggers" />
-              <FeatureRow feature="debounce / throttle" use="Search bars, typing indicators, and rate-limited actions" />
-              <FeatureRow feature="save / restore" use="Undo, draft editing, and cancel flows" />
-              <FeatureRow feature="Reactive.run()" use="Atomic updates and automatic rollback" />
+              <FeatureRow
+                feature="listen / once / when"
+                use="Side effects, logging, syncing, and triggers"
+              />
+              <FeatureRow
+                feature="debounce / throttle"
+                use="Search bars, typing indicators, and rate-limited actions"
+              />
+              <FeatureRow
+                feature="save / restore"
+                use="Undo, draft editing, and cancel flows"
+              />
+              <FeatureRow
+                feature="rxRun()"
+                use="Atomic updates and automatic rollback"
+              />
               <FeatureRow feature="require()" use="Validation and guardrails" />
-              <FeatureRow feature="compute / combine / as" use="Derived totals and read-only summaries" />
-              <FeatureRow feature="ReactiveDependency / RxDep" use="Stores and shared services" />
-              <FeatureRow feature="mutate()" use="In-place updates on mutable models" />
-              <FeatureRow feature="stream" use="StreamBuilder integration and stream-based APIs" />
+              <FeatureRow
+                feature="compute / combine / as"
+                use="Derived totals and read-only summaries"
+              />
+              <FeatureRow
+                feature="ReactiveDependency / RxDep"
+                use="Stores and shared services"
+              />
+              <FeatureRow
+                feature="mutate()"
+                use="In-place updates on mutable models"
+              />
+              <FeatureRow
+                feature="stream"
+                use="StreamBuilder integration and stream-based APIs"
+              />
             </tbody>
           </table>
         </div>
       </section>
     </div>
-  )
+  );
 }
 
 function FeatureRow({ feature, use }: { feature: string; use: string }) {
@@ -251,5 +290,5 @@ function FeatureRow({ feature, use }: { feature: string; use: string }) {
       <td className="py-3 px-4 font-mono text-xs sm:text-sm">{feature}</td>
       <td className="py-3 px-4 text-muted-foreground">{use}</td>
     </tr>
-  )
+  );
 }

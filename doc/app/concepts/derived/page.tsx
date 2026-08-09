@@ -1,6 +1,6 @@
-import { CodeBlock } from "@/components/docs/code-block"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
+import { CodeBlock } from "@/components/docs/code-block";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function DerivedPage() {
   return (
@@ -16,7 +16,11 @@ export default function DerivedPage() {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">as() - Simple Transformation</h2>
         <p className="text-muted-foreground">
-          Transform a reactive value into another with <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">.as()</code>:
+          Transform a reactive value into another with{" "}
+          <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">
+            .as()
+          </code>
+          :
         </p>
         <CodeBlock
           filename="as_transform.dart"
@@ -37,9 +41,15 @@ print(isValid.value); // true`}
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">combine() - Combine Multiple Sources</h2>
+        <h2 className="text-xl font-semibold">
+          combine() - Combine Multiple Sources
+        </h2>
         <p className="text-muted-foreground">
-          Combine multiple Reactives into one with <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">Reactive.combine()</code>:
+          Combine multiple Reactives into one with{" "}
+          <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">
+            combine()
+          </code>
+          :
         </p>
         <CodeBlock
           filename="combine.dart"
@@ -48,7 +58,7 @@ print(isValid.value); // true`}
 final lastName = 'Doe'.rt;
 
 // Combine with list
-final fullName = Reactive.combine(
+final fullName = combine(
   [firstName, lastName],
   (values) => '\${values[0]} \${values[1]}',
 );
@@ -59,7 +69,7 @@ print(fullName.value); // 'John Doe'
 final price = 100.rt;
 final quantity = 2.rt;
 
-final total = Reactive.combine2(
+final total = combine2(
   price,
   quantity,
   (price, qty) => price * qty,
@@ -70,7 +80,7 @@ print(total.value); // 200
 // combine3, combine4, combine5 also available
 final discount = 0.1.rt;
 
-final finalPrice = Reactive.combine3(
+final finalPrice = combine3(
   price,
   quantity,
   discount,
@@ -82,10 +92,14 @@ print(finalPrice.value); // 180.0`}
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">compute() - Automatic Tracking</h2>
+        <h2 className="text-xl font-semibold">
+          compute() - Automatic Tracking
+        </h2>
         <p className="text-muted-foreground">
-          <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">Reactive.compute()</code> automatically detects 
-          dependencies — no need to list them explicitly:
+          <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">
+            compute()
+          </code>{" "}
+          automatically detects dependencies — no need to list them explicitly:
         </p>
         <CodeBlock
           filename="compute.dart"
@@ -95,7 +109,7 @@ final quantity = 2.rt;
 final taxRate = 0.2.rt;
 
 // Dependencies are detected automatically
-final total = Reactive.compute(() {
+final total = compute(() {
   final subtotal = price.value * quantity.value;
   final tax = subtotal * taxRate.value;
   (p, q, d) => (p * q) * (1 - d),
@@ -123,12 +137,21 @@ final grandTotal = compute(() {
         />
         <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-primary">When to Use What?</CardTitle>
+            <CardTitle className="text-base text-primary">
+              When to Use What?
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p><strong>as()</strong>: Simple transformation of a single source</p>
-            <p><strong>combine()</strong>: When you know exactly your sources</p>
-            <p><strong>compute()</strong>: Complex calculations with dynamic dependencies</p>
+            <p>
+              <strong>as()</strong>: Simple transformation of a single source
+            </p>
+            <p>
+              <strong>combine()</strong>: When you know exactly your sources
+            </p>
+            <p>
+              <strong>compute()</strong>: Complex calculations with dynamic
+              dependencies
+            </p>
           </CardContent>
         </Card>
       </section>
@@ -136,7 +159,8 @@ final grandTotal = compute(() {
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Read-Only Values</h2>
         <p className="text-muted-foreground">
-          Derived Reactives are read-only — you cannot modify their value directly:
+          Derived Reactives are read-only — you cannot modify their value
+          directly:
         </p>
         <CodeBlock
           filename="readonly.dart"
@@ -154,11 +178,15 @@ print(doubled.value); // 10
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Practical Example: Shopping Cart</h2>
+        <h2 className="text-xl font-semibold">
+          Practical Example: Shopping Cart
+        </h2>
         <CodeBlock
-  
+          filename="readonly.dart"
+          language="dart"
+          code={`
   // Final total with discount
-  late final total = Reactive.combine2(
+  late final total = combine2(
     subtotal,
     couponDiscount,
     (subtotal, discount) {
@@ -169,7 +197,7 @@ print(doubled.value); // 10
   );
   
   // Item count
-  late final itemCount = Reactive.compute(() {
+  late final itemCount = compute(() {
     return items.value.fold(0, (sum, item) => sum + item.quantity);
   });
   
@@ -197,10 +225,11 @@ print(cart.total.value);     // 1184.76`}
         <h2 className="text-xl font-semibold">Next Step</h2>
         <div className="p-4 rounded-lg border border-border bg-card">
           <p className="text-muted-foreground">
-            Learn how to group your modifications with transactions and automatic rollback.
+            Learn how to group your modifications with transactions and
+            automatic rollback.
           </p>
-          <Link 
-            href="/concepts/transactions" 
+          <Link
+            href="/concepts/transactions"
             className="inline-block mt-3 text-primary hover:underline font-medium"
           >
             Discover Transactions &rarr;
@@ -208,5 +237,5 @@ print(cart.total.value);     // 1184.76`}
         </div>
       </section>
     </div>
-  )
+  );
 }

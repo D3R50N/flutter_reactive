@@ -1,5 +1,5 @@
-import { CodeBlock } from "@/components/docs/code-block"
-import Link from "next/link"
+import { CodeBlock } from "@/components/docs/code-block";
+import Link from "next/link";
 
 export default function CartExamplePage() {
   return (
@@ -64,33 +64,33 @@ class CartItem {
   final discount = 0.0.reactive()
       .require((value) => value >= 0 && value <= 1, 'Invalid discount');
 
-  late final subtotal = Reactive.compute(() {
+  late final subtotal = compute(() {
     return items.value.fold(0.0, (sum, item) => sum + item.total);
   });
 
-  late final discountAmount = Reactive.combine2(
+  late final discountAmount = combine2(
     subtotal,
     discount,
     (currentSubtotal, currentDiscount) => currentSubtotal * currentDiscount,
   );
 
-  late final tax = Reactive.compute(() {
+  late final tax = compute(() {
     final afterDiscount = subtotal.value - discountAmount.value;
     return afterDiscount * 0.2;
   });
 
-  late final total = Reactive.compute(() {
+  late final total = compute(() {
     return subtotal.value - discountAmount.value + tax.value;
   });
 
-  late final itemCount = Reactive.compute(() {
+  late final itemCount = compute(() {
     return items.value.fold(0, (sum, item) => sum + item.quantity);
   });
 
   late final isEmpty = items.as((value) => value.isEmpty);
 
   Future<void> addProduct(Product product) async {
-    await Reactive.run(() {
+    await rxRun(() {
       final existingIndex = items.value.indexWhere(
         (item) => item.product.id == product.id,
       );
@@ -112,7 +112,7 @@ class CartItem {
       return;
     }
 
-    await Reactive.run(() {
+    await rxRun(() {
       final index = items.value.indexWhere(
         (item) => item.product.id == productId,
       );
@@ -143,7 +143,7 @@ class CartItem {
 
     final upperCode = code.toUpperCase();
     if (validCodes.containsKey(upperCode)) {
-      await Reactive.run(() {
+      await rxRun(() {
         promoCode.value = upperCode;
         discount.value = validCodes[upperCode]!;
       });
@@ -412,7 +412,12 @@ class _SummaryRow extends StatelessWidget {
           <li>Derived totals stay in sync automatically</li>
           <li>Transactions keep critical cart updates safe</li>
           <li>Validation protects promo discounts</li>
-          <li><code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">ReactiveN</code> is ideal for optional promo codes</li>
+          <li>
+            <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">
+              ReactiveN
+            </code>{" "}
+            is ideal for optional promo codes
+          </li>
           <li>Derived state cascades cleanly from subtotal to total</li>
         </ul>
       </section>
@@ -433,5 +438,5 @@ class _SummaryRow extends StatelessWidget {
         </div>
       </section>
     </div>
-  )
+  );
 }

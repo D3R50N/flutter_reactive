@@ -71,12 +71,12 @@ Rxb(() => Text('\${counter.value}'));
 
 // Before
 final count = 0.reactive();
-final total = Reactive.computed(() => a.value + b.value);
+final total = computed(() => a.value + b.value);
 
 // After
 final shortHand = 0.rx;
 final count = 0.rx;
-final total = Reactive.compute(() => a.value + b.value);`,
+final total = compute(() => a.value + b.value);`,
       },
     ],
   },
@@ -115,12 +115,12 @@ Widget build(context) {
 }`,
       },
       {
-        question: "Is `Reactive.compute()` performant?",
+        question: "Is `compute()` performant?",
         answer: `Yes. \`compute()\` automatically tracks dependencies and only recalculates when one of them changes.
 
 For expensive work, keep the computation lightweight, debounce the input, or move the heavy processing away from the UI thread.`,
         code: `// compute() tracks rA and rB automatically
-final sum = Reactive.compute(() => rA.value + rB.value);
+final sum = compute(() => rA.value + rB.value);
 
 // For expensive work, debounce first
 rInput.debounce(300, (value) async {
@@ -210,7 +210,7 @@ try {
       },
       {
         question: "Why is my transaction rollback not working?",
-        answer: `Rollback in \`Reactive.run()\` only applies to reactives modified during the transaction itself.
+        answer: `Rollback in \`rxRun()\` only applies to reactives modified during the transaction itself.
 
 **Check that:**
 1. Every related mutation is inside the \`run()\` callback
@@ -218,13 +218,13 @@ try {
 3. The error is actually thrown and not swallowed`,
         code: `// Bad: one mutation happens outside the transaction
 rA.value = 10; // Not part of rollback
-await Reactive.run(() {
+await rxRun(() {
   rB.value = 20;
   throw Exception('Oops');
 });
 
 // Good: everything happens inside the transaction
-await Reactive.run(() {
+await rxRun(() {
   rA.value = 10;
   rB.value = 20;
   throw Exception('Oops');

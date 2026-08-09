@@ -1,29 +1,35 @@
-import { CodeBlock } from "@/components/docs/code-block"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
+import { CodeBlock } from "@/components/docs/code-block";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function TransactionsPage() {
   return (
     <div className="space-y-10">
       <section className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">Transactions &amp; Rollback</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Transactions &amp; Rollback
+        </h1>
         <p className="text-muted-foreground leading-relaxed">
-          Transactions let you group multiple changes and automatically roll them back if something fails.
+          Transactions let you group multiple changes and automatically roll
+          them back if something fails.
         </p>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Basic Transaction</h2>
         <p className="text-muted-foreground">
-          Use <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">Reactive.run()</code> to execute
-          several changes inside one transaction:
+          Use{" "}
+          <code className="font-mono text-sm bg-muted px-1.5 py-0.5 rounded">
+            rxRun()
+          </code>{" "}
+          to execute several changes inside one transaction:
         </p>
         <CodeBlock
           filename="basic_transaction.dart"
           language="dart"
           code={`final counter = 0.reactive();
 
-await Reactive.run(() {
+await rxRun(() {
   counter.inc(5);  // +5
   counter.dec(2);  // -2
 });
@@ -35,7 +41,8 @@ print(counter.value); // 3`}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Automatic Rollback</h2>
         <p className="text-muted-foreground">
-          By default, if an error occurs during the transaction, every change is rolled back:
+          By default, if an error occurs during the transaction, every change is
+          rolled back:
         </p>
         <CodeBlock
           filename="auto_rollback.dart"
@@ -47,7 +54,7 @@ print(counter.value); // 3`}
 // Initial value
 print(counter.value); // 0
 
-await Reactive.run(
+await rxRun(
   () {
     counter.inc(5);  // OK: 0 → 5
     counter.dec(10); // Error! 5 - 10 = -5 < 0
@@ -62,12 +69,15 @@ print(counter.value); // 0`}
         />
         <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-primary">🔒 Data Safety</CardTitle>
+            <CardTitle className="text-base text-primary">
+              🔒 Data Safety
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Rollback keeps your data consistent, even when an error happens in the middle of a series of changes.
-              No partial update is ever applied.
+              Rollback keeps your data consistent, even when an error happens in
+              the middle of a series of changes. No partial update is ever
+              applied.
             </p>
           </CardContent>
         </Card>
@@ -85,7 +95,7 @@ print(counter.value); // 0`}
 final balanceB = 20.reactive();
 
 // Disable automatic rollback
-final tx = await Reactive.run(
+final tx = await rxRun(
   () {
     balanceA.value = 100;
     balanceB.value = 200;
@@ -106,9 +116,12 @@ if (someCondition) {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Save &amp; Restore (Checkpoints)</h2>
+        <h2 className="text-xl font-semibold">
+          Save &amp; Restore (Checkpoints)
+        </h2>
         <p className="text-muted-foreground">
-          Outside transactions, you can save and restore a Reactive&apos;s state:
+          Outside transactions, you can save and restore a Reactive&apos;s
+          state:
         </p>
         <CodeBlock
           filename="checkpoints.dart"
@@ -140,7 +153,9 @@ name.unsaveAll();`}
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Practical Example: Money Transfer</h2>
+        <h2 className="text-xl font-semibold">
+          Practical Example: Money Transfer
+        </h2>
         <CodeBlock
           filename="transfer_example.dart"
           language="dart"
@@ -160,7 +175,7 @@ Future<bool> transfer({
   required double amount,
 }) async {
   try {
-    await Reactive.run(() {
+    await rxRun(() {
       from.balance.update((v) => v - amount);
       to.balance.update((v) => v + amount);
     });
@@ -225,8 +240,8 @@ counter.throttle(1000, (value) {
           <p className="text-muted-foreground">
             Now that you understand transactions, explore real-world examples.
           </p>
-          <Link 
-            href="/examples/counter" 
+          <Link
+            href="/examples/counter"
             className="inline-block mt-3 text-primary hover:underline font-medium"
           >
             View Examples →
@@ -234,5 +249,5 @@ counter.throttle(1000, (value) {
         </div>
       </section>
     </div>
-  )
+  );
 }

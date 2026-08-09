@@ -1,5 +1,5 @@
-import { CodeBlock } from "@/components/docs/code-block"
-import Link from "next/link"
+import { CodeBlock } from "@/components/docs/code-block";
+import Link from "next/link";
 
 export default function TodoExamplePage() {
   return (
@@ -58,7 +58,7 @@ enum TodoFilter { all, active, completed }`}
   final filter = TodoFilter.all.reactive();
   final newTodoText = ''.reactive();
 
-  late final filteredTodos = Reactive.compute(() {
+  late final filteredTodos = compute(() {
     final currentTodos = todos.value;
     final currentFilter = filter.value;
 
@@ -79,7 +79,7 @@ enum TodoFilter { all, active, completed }`}
   late final completedCount = todos.as(
     (items) => items.where((todo) => todo.completed).length,
   );
-  late final allCompleted = Reactive.compute(
+  late final allCompleted = compute(
     () => todos.value.isNotEmpty && activeCount.value == 0,
   );
 
@@ -297,8 +297,15 @@ class TodoTile extends StatelessWidget {
             Derived state keeps filtering and statistics in sync automatically
           </li>
           <li>
-            List helpers such as <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">.add()</code> and{" "}
-            <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">.removeWhere()</code> stay ergonomic
+            List helpers such as{" "}
+            <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">
+              .add()
+            </code>{" "}
+            and{" "}
+            <code className="font-mono text-sm bg-muted px-1 py-0.5 rounded">
+              .removeWhere()
+            </code>{" "}
+            stay ergonomic
           </li>
           <li>State and UI remain cleanly separated</li>
           <li>Bindings keep the page in sync with the underlying store</li>
@@ -309,7 +316,8 @@ class TodoTile extends StatelessWidget {
         <h2 className="text-xl font-semibold">Next Example</h2>
         <div className="p-4 rounded-lg border border-border bg-card">
           <p className="text-muted-foreground">
-            Explore a more advanced example with transactions and automatic rollback.
+            Explore a more advanced example with transactions and automatic
+            rollback.
           </p>
           <Link
             href="/examples/cart"
@@ -320,5 +328,5 @@ class TodoTile extends StatelessWidget {
         </div>
       </section>
     </div>
-  )
+  );
 }
